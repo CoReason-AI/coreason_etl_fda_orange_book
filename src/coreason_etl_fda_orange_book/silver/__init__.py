@@ -7,15 +7,3 @@
 # Commercial use beyond a 30-day trial requires a separate license.
 #
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
-
-"""
-A robust ETL pipeline for ingesting and harmonizing FDA Orange Book data
-"""
-
-__version__ = "0.1.0"
-__author__ = "Gowtham A Rao"
-__email__ = "gowtham.rao@coreason.ai"
-
-from .main import main
-
-__all__ = ["main"]
