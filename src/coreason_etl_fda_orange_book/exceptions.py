@@ -13,14 +13,17 @@
 
 class FdaError(Exception):
     """Base exception for FDA Orange Book ETL."""
+
     pass
 
 
 class SourceConnectionError(FdaError):
     """Raised when the source cannot be reached or downloaded."""
+
     pass
 
 
 class SourceSchemaError(FdaError):
     """Raised when the source structure (files, headers) is invalid."""
+
     pass
