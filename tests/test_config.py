@@ -9,6 +9,7 @@
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
 """Tests for the configuration module."""
+
 from coreason_etl_fda_orange_book.config import FdaConfig
 
 

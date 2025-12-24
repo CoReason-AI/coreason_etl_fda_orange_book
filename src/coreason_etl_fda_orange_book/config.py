@@ -9,6 +9,7 @@
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
 """Configuration module for FDA Orange Book ETL."""
+
 from typing import Final
 
 

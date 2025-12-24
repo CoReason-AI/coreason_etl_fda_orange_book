@@ -9,10 +9,13 @@
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
 """Tests for the CLI entry point."""
-import pytest
+
 from unittest.mock import patch
-from coreason_etl_fda_orange_book.main import parse_args, main
+
+import pytest
+
 from coreason_etl_fda_orange_book.config import FdaConfig
+from coreason_etl_fda_orange_book.main import main, parse_args
 
 
 def test_parse_args_defaults() -> None:

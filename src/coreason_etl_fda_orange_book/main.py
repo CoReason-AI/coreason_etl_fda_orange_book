@@ -9,6 +9,7 @@
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
 """Entry point for the FDA Orange Book ETL pipeline."""
+
 import argparse
 import os
 import sys
