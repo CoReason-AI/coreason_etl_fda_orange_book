@@ -22,3 +22,14 @@ def test_fda_config_defaults() -> None:
     assert FdaConfig.DELIMITER == "~"
     assert FdaConfig.ENCODING == "utf8-lossy"
     assert FdaConfig.NAMESPACE_FDA == "fda.gov"
+
+
+def test_fda_config_integrity() -> None:
+    """Test that critical configuration constants are valid (non-empty)."""
+    assert FdaConfig.DEFAULT_BASE_URL
+    assert FdaConfig.FILE_PRODUCTS
+    assert FdaConfig.FILE_PATENTS
+    assert FdaConfig.FILE_EXCLUSIVITY
+    assert len(FdaConfig.DELIMITER) == 1
+    assert FdaConfig.ENCODING
+    assert FdaConfig.NAMESPACE_FDA
