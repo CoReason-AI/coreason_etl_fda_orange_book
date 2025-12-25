@@ -12,6 +12,7 @@
 
 import os
 import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -24,6 +25,7 @@ def test_parse_args_defaults() -> None:
     """Test argument parsing with default values."""
     args = parse_args([])
     assert args.base_url == FdaConfig.DEFAULT_BASE_URL
+    assert args.download_dir == FdaConfig.DEFAULT_DOWNLOAD_DIR
 
 
 def test_parse_args_custom_url() -> None:
@@ -31,6 +33,13 @@ def test_parse_args_custom_url() -> None:
     custom_url = "https://example.com/data.zip"
     args = parse_args(["--base-url", custom_url])
     assert args.base_url == custom_url
+
+
+def test_parse_args_custom_download_dir() -> None:
+    """Test argument parsing with a custom download directory."""
+    custom_dir = Path("/tmp/custom_fda")
+    args = parse_args(["--download-dir", str(custom_dir)])
+    assert args.download_dir == custom_dir
 
 
 def test_parse_args_unknown_arg() -> None:
@@ -48,6 +57,7 @@ def test_parse_args_help(capsys: pytest.CaptureFixture[str]) -> None:
     captured = capsys.readouterr()
     assert "FDA Orange Book ETL Pipeline" in captured.out
     assert "--base-url" in captured.out
+    assert "--download-dir" in captured.out
 
 
 def test_setup_logging_default() -> None:
@@ -98,23 +108,15 @@ def test_main_execution() -> None:
 def test_main_with_args() -> None:
     """Test main execution with arguments."""
     custom_url = "https://example.com/test.zip"
+    custom_dir = Path("/tmp/test_dir")
     with patch("coreason_etl_fda_orange_book.main.logger") as mock_logger:
-        main(["--base-url", custom_url])
+        main(["--base-url", custom_url, "--download-dir", str(custom_dir)])
         mock_logger.info.assert_any_call(f"Using Base URL: {custom_url}")
+        mock_logger.info.assert_any_call(f"Download Directory: {custom_dir}")
 
 
 def test_main_implicit_args() -> None:
     """Test main execution when implicit args (sys.argv) are used or empty list passed."""
-    # When main(None) is called, argparse uses sys.argv.
-    # We need to mock sys.argv or ensure it doesn't have conflicting args from pytest.
-    # To be safe, we will pass an empty list which mimics 'no args provided' behavior
-    # for our parse_args implementation if we were calling it directly, but main(None) triggers sys.argv lookup.
-
-    # However, our main implementation calls `parse_args(args)`.
-    # default definition: parse_args(args: list[str] | None = None) -> ... return parser.parse_args(args)
-    # If args is None, argparse uses sys.argv[1:].
-
-    # Let's explicitly test main(None) but mock sys.argv to be safe.
     with patch.object(sys, "argv", ["program_name"]), patch("coreason_etl_fda_orange_book.main.logger") as mock_logger:
         main(None)
         mock_logger.info.assert_any_call("Starting FDA Orange Book ETL Pipeline")

@@ -10,6 +10,7 @@
 
 """Configuration module for FDA Orange Book ETL."""
 
+from pathlib import Path
 from typing import Final
 
 
@@ -18,6 +19,7 @@ class FdaConfig:
 
     # Source Definition
     DEFAULT_BASE_URL: Final[str] = "https://www.fda.gov/media/76860/download?attachment"
+    DEFAULT_DOWNLOAD_DIR: Final[Path] = Path("data/bronze")
 
     # File Names
     FILE_PRODUCTS: Final[str] = "products.txt"
