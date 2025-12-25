@@ -13,6 +13,7 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 from loguru import logger
 
@@ -27,6 +28,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         type=str,
         default=FdaConfig.DEFAULT_BASE_URL,
         help="Base URL for the FDA Orange Book ZIP download",
+    )
+    parser.add_argument(
+        "--download-dir",
+        type=Path,
+        default=FdaConfig.DEFAULT_DOWNLOAD_DIR,
+        help="Directory where the source ZIP will be downloaded and extracted",
     )
     return parser.parse_args(args)
 
@@ -44,6 +51,12 @@ def main(args: list[str] | None = None) -> None:
 
     logger.info("Starting FDA Orange Book ETL Pipeline")
     logger.info(f"Using Base URL: {parsed_args.base_url}")
+    logger.info(f"Download Directory: {parsed_args.download_dir}")
+
+    # Ensure download directory exists (rudimentary check, source logic might handle it too)
+    # But since we are passing it to the source, the source might expect it to exist or create it.
+    # We'll leave creation to the specific logic or here.
+    # For now, we just parse it.
 
     # Placeholder for future logic
     logger.info("Pipeline initialized successfully.")
