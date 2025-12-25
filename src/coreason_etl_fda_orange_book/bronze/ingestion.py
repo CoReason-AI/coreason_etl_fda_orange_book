@@ -50,12 +50,7 @@ def yield_bronze_records(
                 continue
 
             try:
-                with open(
-                    file_path,
-                    "r",
-                    encoding=FdaConfig.ENCODING,
-                    errors=FdaConfig.ENCODING_ERRORS
-                ) as f:
+                with open(file_path, "r", encoding=FdaConfig.ENCODING, errors=FdaConfig.ENCODING_ERRORS) as f:
                     for line_idx, line in enumerate(f, start=1):
                         line_content = line.strip()
                         if not line_content:

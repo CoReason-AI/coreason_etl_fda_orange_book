@@ -10,14 +10,13 @@
 
 """Tests for the CLI entry point."""
 
-import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from coreason_etl_fda_orange_book.main import main, parse_args, setup_logging
 from coreason_etl_fda_orange_book.config import FdaConfig
+from coreason_etl_fda_orange_book.main import main, parse_args, setup_logging
 
 
 def test_parse_args_defaults() -> None:

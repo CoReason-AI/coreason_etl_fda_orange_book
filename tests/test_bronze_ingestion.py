@@ -14,9 +14,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import dlt
 
-from coreason_etl_fda_orange_book.bronze.ingestion import yield_bronze_records, bronze_resource
+from coreason_etl_fda_orange_book.bronze.ingestion import bronze_resource, yield_bronze_records
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
@@ -150,7 +149,7 @@ def test_bronze_resource_wrapper(mock_source: MagicMock, tmp_path: Path) -> None
     files_map = {"test": [f1]}
 
     # Check it is a resource
-    assert hasattr(bronze_resource, "__call__")
+    assert callable(bronze_resource)
 
     # Iterate
     resource = bronze_resource(files_map, mock_source)

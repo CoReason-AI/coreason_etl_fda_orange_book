@@ -284,11 +284,7 @@ def test_calculate_file_hash_oserror(fda_source: FdaOrangeBookSource, tmp_path: 
 
 def test_resolve_product_files_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test successful resolution of product files."""
-    files = [
-        tmp_path / "products.txt",
-        tmp_path / "patent.txt",
-        tmp_path / "exclusivity.txt"
-    ]
+    files = [tmp_path / "products.txt", tmp_path / "patent.txt", tmp_path / "exclusivity.txt"]
     mapping = fda_source.resolve_product_files(files)
     assert len(mapping["products"]) == 1
     assert mapping["products"][0].name == "products.txt"
@@ -298,11 +294,7 @@ def test_resolve_product_files_success(fda_source: FdaOrangeBookSource, tmp_path
 
 def test_resolve_product_files_fallback(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test fallback to rx/otc/disc files."""
-    files = [
-        tmp_path / "rx.txt",
-        tmp_path / "otc.txt",
-        tmp_path / "patent.txt"
-    ]
+    files = [tmp_path / "rx.txt", tmp_path / "otc.txt", tmp_path / "patent.txt"]
     mapping = fda_source.resolve_product_files(files)
     assert len(mapping["products"]) == 2
     names = sorted([p.name for p in mapping["products"]])
