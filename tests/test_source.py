@@ -10,6 +10,7 @@
 
 """Tests for the FdaOrangeBookSource class."""
 
+import hashlib
 import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -254,3 +255,85 @@ def test_cleanup_oserror(fda_source: FdaOrangeBookSource, tmp_path: Path) -> Non
         fda_source.cleanup(f)
 
     assert f.exists()  # Should still exist because unlink failed
+
+
+def test_calculate_file_hash_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test MD5 hash calculation for a known file content."""
+    test_file = tmp_path / "hash_test.txt"
+    content = b"hello world"
+    test_file.write_bytes(content)
+
+    expected_hash = hashlib.md5(content).hexdigest()
+    assert fda_source.calculate_file_hash(test_file) == expected_hash
+
+
+def test_calculate_file_hash_large_file(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test MD5 hash calculation for a file larger than CHUNK_SIZE."""
+    test_file = tmp_path / "large_file.txt"
+    # Create content larger than 8192 bytes
+    content = b"a" * (fda_source.CHUNK_SIZE * 2 + 100)
+    test_file.write_bytes(content)
+
+    expected_hash = hashlib.md5(content).hexdigest()
+    assert fda_source.calculate_file_hash(test_file) == expected_hash
+
+
+def test_calculate_file_hash_empty_file(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test MD5 hash calculation for an empty file."""
+    test_file = tmp_path / "empty_hash.txt"
+    test_file.touch()
+
+    expected_hash = hashlib.md5(b"").hexdigest()
+    assert fda_source.calculate_file_hash(test_file) == expected_hash
+
+
+def test_calculate_file_hash_file_not_found(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test that calculating hash for a non-existent file raises FileNotFoundError."""
+    test_file = tmp_path / "non_existent.txt"
+    with pytest.raises(FileNotFoundError):
+        fda_source.calculate_file_hash(test_file)
+
+
+def test_calculate_file_hash_oserror(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test robust error handling when file read fails."""
+    test_file = tmp_path / "error_file.txt"
+    test_file.touch()
+
+    # Mock open to succeed, but read to fail
+    with patch("builtins.open", side_effect=OSError("Disk error")):
+        with pytest.raises(OSError, match="Disk error"):
+            fda_source.calculate_file_hash(test_file)
+
+
+def test_calculate_file_hash_directory(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test that calculating hash for a directory raises an error."""
+    test_dir = tmp_path / "test_dir"
+    test_dir.mkdir()
+
+    # On POSIX, open() on a directory might raise IsADirectoryError.
+    # On Windows, it might be PermissionError. Both are OSErrors.
+    # We expect the method to bubble up the exception.
+    with pytest.raises(OSError):
+        fda_source.calculate_file_hash(test_dir)
+
+
+def test_calculate_file_hash_permission_error(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test handling of permission errors."""
+    test_file = tmp_path / "protected.txt"
+    test_file.touch()
+
+    # Mock open to raise PermissionError
+    with patch("builtins.open", side_effect=PermissionError("Access denied")):
+        with pytest.raises(PermissionError, match="Access denied"):
+            fda_source.calculate_file_hash(test_file)
+
+
+def test_calculate_file_hash_binary_content(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test hashing of binary non-text content."""
+    test_file = tmp_path / "binary.bin"
+    # Random bytes including nulls and non-printables
+    content = b"\x00\xFF\x10\xCA\xFE\xBA\xBE" * 100
+    test_file.write_bytes(content)
+
+    expected_hash = hashlib.md5(content).hexdigest()
+    assert fda_source.calculate_file_hash(test_file) == expected_hash

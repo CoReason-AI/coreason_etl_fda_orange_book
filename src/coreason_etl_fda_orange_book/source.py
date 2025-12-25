@@ -10,6 +10,7 @@
 
 """Source module for downloading and handling FDA Orange Book files."""
 
+import hashlib
 import shutil
 import zipfile
 from pathlib import Path
@@ -133,3 +134,27 @@ class FdaOrangeBookSource:
             logger.debug(f"Cleaned up {path}")
         except OSError as e:
             logger.warning(f"Failed to cleanup {path}: {e}")
+
+    def calculate_file_hash(self, file_path: Path) -> str:
+        """
+        Calculate the MD5 hash of a file.
+
+        Args:
+            file_path: Path to the file.
+
+        Returns:
+            The hexadecimal MD5 hash of the file content.
+
+        Raises:
+            OSError: If reading the file fails.
+        """
+        logger.debug(f"Calculating MD5 hash for {file_path}")
+        file_hash = hashlib.md5()
+        try:
+            with open(file_path, "rb") as f:
+                while chunk := f.read(self.CHUNK_SIZE):
+                    file_hash.update(chunk)
+            return file_hash.hexdigest()
+        except OSError as e:
+            logger.error(f"Failed to calculate hash for {file_path}: {e}")
+            raise
