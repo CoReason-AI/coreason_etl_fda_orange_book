@@ -28,7 +28,8 @@ class FdaConfig:
 
     # Parsing
     DELIMITER: Final[str] = "~"
-    ENCODING: Final[str] = "utf8-lossy"  # Handling for potential encoding issues
+    ENCODING: Final[str] = "utf-8"  # Standard encoding
+    ENCODING_ERRORS: Final[str] = "replace"  # Handling for potential encoding issues (lossy)
 
     # Identity Resolution
     NAMESPACE_FDA: Final[str] = "fda.gov"  # For UUID5 generation

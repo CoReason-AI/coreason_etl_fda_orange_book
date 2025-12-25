@@ -10,6 +10,7 @@
 
 """Source module for downloading and handling FDA Orange Book files."""
 
+import hashlib
 import shutil
 import zipfile
 from pathlib import Path
@@ -114,6 +115,89 @@ class FdaOrangeBookSource:
         except zipfile.BadZipFile as e:
             logger.error(f"Invalid ZIP file: {e}")
             raise SourceSchemaError(f"File at {zip_path} is not a valid ZIP archive.") from e
+
+    def calculate_file_hash(self, file_path: Path) -> str:
+        """
+        Calculate the MD5 hash of a file.
+
+        Args:
+            file_path: Path to the file.
+
+        Returns:
+            The MD5 hex digest of the file.
+
+        Raises:
+            SourceConnectionError: If the file cannot be read.
+        """
+        logger.debug(f"Calculating hash for {file_path}")
+        if not file_path.exists():
+            raise SourceConnectionError(f"File not found for hashing: {file_path}")
+
+        hash_md5 = hashlib.md5()
+        try:
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(self.CHUNK_SIZE), b""):
+                    hash_md5.update(chunk)
+            digest = hash_md5.hexdigest()
+            logger.debug(f"Hash for {file_path.name}: {digest}")
+            return digest
+        except OSError as e:
+            logger.error(f"Failed to calculate hash for {file_path}: {e}")
+            raise SourceConnectionError(f"Failed to calculate hash for {file_path}: {e}") from e
+
+    def resolve_product_files(self, extracted_files: list[Path]) -> dict[str, list[Path]]:
+        """
+        Map extracted files to logical roles (products, patent, exclusivity).
+
+        Args:
+            extracted_files: List of paths to the extracted files.
+
+        Returns:
+            A dictionary where keys are logical roles ('products', 'patent', 'exclusivity')
+            and values are lists of corresponding file paths.
+
+        Raises:
+            SourceSchemaError: If critical files (products or components) are missing.
+        """
+        mapping: dict[str, list[Path]] = {
+            "products": [],
+            "patent": [],
+            "exclusivity": [],
+        }
+
+        # Create a lookup for case-insensitive matching
+        name_map = {f.name.lower(): f for f in extracted_files}
+
+        # 1. Resolve Products
+        if FdaConfig.FILE_PRODUCTS.lower() in name_map:
+            mapping["products"].append(name_map[FdaConfig.FILE_PRODUCTS.lower()])
+        else:
+            # Fallback to components
+            components = ["rx.txt", "otc.txt", "disc.txt"]
+            found_components = []
+            for comp in components:
+                if comp in name_map:
+                    found_components.append(name_map[comp])
+
+            if found_components:
+                mapping["products"].extend(found_components)
+            else:
+                logger.error("No valid product files found (products.txt or rx/otc/disc.txt)")
+                raise SourceSchemaError("Missing required product files (products.txt or rx.txt/otc.txt/disc.txt)")
+
+        # 2. Resolve Patent
+        if FdaConfig.FILE_PATENTS.lower() in name_map:
+            mapping["patent"].append(name_map[FdaConfig.FILE_PATENTS.lower()])
+        else:
+            logger.warning("patent.txt not found in extracted files.")
+
+        # 3. Resolve Exclusivity
+        if FdaConfig.FILE_EXCLUSIVITY.lower() in name_map:
+            mapping["exclusivity"].append(name_map[FdaConfig.FILE_EXCLUSIVITY.lower()])
+        else:
+            logger.warning("exclusivity.txt not found in extracted files.")
+
+        return mapping
 
     def cleanup(self, path: Path) -> None:
         """

@@ -20,7 +20,8 @@ def test_fda_config_defaults() -> None:
     assert FdaConfig.FILE_PATENTS == "patent.txt"
     assert FdaConfig.FILE_EXCLUSIVITY == "exclusivity.txt"
     assert FdaConfig.DELIMITER == "~"
-    assert FdaConfig.ENCODING == "utf8-lossy"
+    assert FdaConfig.ENCODING == "utf-8"
+    assert FdaConfig.ENCODING_ERRORS == "replace"
     assert FdaConfig.NAMESPACE_FDA == "fda.gov"
 
 
