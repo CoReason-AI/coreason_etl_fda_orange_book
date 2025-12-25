@@ -72,5 +72,6 @@ def yield_bronze_records(
                 # We might want to raise here or skip.
                 # For "Lossless" attempts, failing the batch might be better than partial data?
                 # But dlt handles errors. Let's log and continue for now, or raise if critical.
-                # Given strict requirements, let's assume if we can't read a file we just fail the iterator for that file.
+                # Given strict requirements, let's assume if we can't read a file we just fail the
+                # iterator for that file.
                 continue
