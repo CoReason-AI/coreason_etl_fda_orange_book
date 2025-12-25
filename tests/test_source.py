@@ -210,7 +210,7 @@ def test_extract_empty_zip(fda_source: FdaOrangeBookSource, tmp_path: Path) -> N
     zip_path = tmp_path / "empty_valid.zip"
     extract_dir = tmp_path / "extracted_empty"
 
-    with zipfile.ZipFile(zip_path, "w") as zf:
+    with zipfile.ZipFile(zip_path, "w") as _:  # renamed to _
         pass  # Empty zip
 
     files = fda_source.extract_archive(zip_path, extract_dir)
