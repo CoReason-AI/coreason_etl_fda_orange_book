@@ -12,7 +12,7 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
 
 from loguru import logger
 
@@ -22,7 +22,7 @@ from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 def yield_bronze_records(
     files_map: dict[str, list[Path]], source_instance: FdaOrangeBookSource
-) -> Iterator[dict]:
+) -> Iterator[dict[str, Any]]:
     """
     Generator that yields records for the Bronze layer.
 
@@ -48,9 +48,7 @@ def yield_bronze_records(
 
             try:
                 # Open with configured encoding
-                with open(
-                    file_path, "r", encoding=FdaConfig.ENCODING, errors=FdaConfig.ENCODING_ERRORS
-                ) as f:
+                with open(file_path, "r", encoding=FdaConfig.ENCODING, errors=FdaConfig.ENCODING_ERRORS) as f:
                     for line_idx, line in enumerate(f):
                         line_content = line.strip()
                         if not line_content:
@@ -60,11 +58,8 @@ def yield_bronze_records(
                             "source_file": file_path.name,
                             "ingestion_ts": ingestion_ts,
                             "source_hash": file_hash,
-                            "raw_content": {
-                                "line_number": line_idx + 1,
-                                "data": line_content
-                            },
-                            "role": role # Optional but useful for debugging
+                            "raw_content": {"line_number": line_idx + 1, "data": line_content},
+                            "role": role,  # Optional but useful for debugging
                         }
                         yield record
             except Exception as e:

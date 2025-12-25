@@ -52,10 +52,7 @@ def test_yield_bronze_records_multiple_files(mock_source: MagicMock, tmp_path: P
     f2 = tmp_path / "patent.txt"
     f2.write_text("patent_data", encoding="utf-8")
 
-    files_map = {
-        "products": [f1],
-        "patent": [f2]
-    }
+    files_map = {"products": [f1], "patent": [f2]}
 
     records = list(yield_bronze_records(files_map, mock_source))
 
@@ -107,6 +104,7 @@ def test_yield_bronze_records_read_failure(mock_source: MagicMock, tmp_path: Pat
     files_map = {"test": [f1]}
 
     from unittest.mock import patch
+
     with patch("builtins.open", side_effect=OSError("Read error")):
         records = list(yield_bronze_records(files_map, mock_source))
 
