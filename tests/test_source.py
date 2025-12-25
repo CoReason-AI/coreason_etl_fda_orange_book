@@ -254,3 +254,71 @@ def test_cleanup_oserror(fda_source: FdaOrangeBookSource, tmp_path: Path) -> Non
         fda_source.cleanup(f)
 
     assert f.exists()  # Should still exist because unlink failed
+
+
+def test_calculate_file_hash_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test successful hash calculation."""
+    f = tmp_path / "test.txt"
+    f.write_text("hello", encoding="utf-8")
+
+    # MD5 of "hello" is 5d41402abc4b2a76b9719d911017c592
+    assert fda_source.calculate_file_hash(f) == "5d41402abc4b2a76b9719d911017c592"
+
+
+def test_calculate_file_hash_missing_file(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test hash calculation fails for missing file."""
+    f = tmp_path / "missing.txt"
+    with pytest.raises(SourceConnectionError, match="File not found"):
+        fda_source.calculate_file_hash(f)
+
+
+def test_calculate_file_hash_oserror(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test hash calculation handles OSError."""
+    f = tmp_path / "test.txt"
+    f.touch()
+
+    with patch("builtins.open", side_effect=OSError("Read error")):
+        with pytest.raises(SourceConnectionError, match="Failed to calculate hash"):
+            fda_source.calculate_file_hash(f)
+
+
+def test_resolve_product_files_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test successful resolution of product files."""
+    files = [
+        tmp_path / "products.txt",
+        tmp_path / "patent.txt",
+        tmp_path / "exclusivity.txt"
+    ]
+    mapping = fda_source.resolve_product_files(files)
+    assert len(mapping["products"]) == 1
+    assert mapping["products"][0].name == "products.txt"
+    assert len(mapping["patent"]) == 1
+    assert len(mapping["exclusivity"]) == 1
+
+
+def test_resolve_product_files_fallback(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test fallback to rx/otc/disc files."""
+    files = [
+        tmp_path / "rx.txt",
+        tmp_path / "otc.txt",
+        tmp_path / "patent.txt"
+    ]
+    mapping = fda_source.resolve_product_files(files)
+    assert len(mapping["products"]) == 2
+    names = sorted([p.name for p in mapping["products"]])
+    assert names == ["otc.txt", "rx.txt"]
+
+
+def test_resolve_product_files_missing_products(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test failure when product files are missing."""
+    files = [tmp_path / "patent.txt"]
+    with pytest.raises(SourceSchemaError, match="Missing required product files"):
+        fda_source.resolve_product_files(files)
+
+
+def test_resolve_product_files_missing_optional(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test missing optional files (patent, exclusivity) logs warning but doesn't raise."""
+    files = [tmp_path / "products.txt"]
+    mapping = fda_source.resolve_product_files(files)
+    assert len(mapping["patent"]) == 0
+    assert len(mapping["exclusivity"]) == 0

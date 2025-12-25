@@ -8,12 +8,14 @@
 #
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
-"""Bronze layer ingestion logic."""
+"""Ingestion logic for the Bronze layer."""
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
+import dlt
 from loguru import logger
 
 from coreason_etl_fda_orange_book.config import FdaConfig
@@ -21,57 +23,72 @@ from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
 def yield_bronze_records(
-    files_map: dict[str, list[Path]], source_instance: FdaOrangeBookSource
+    files_map: dict[str, list[Path]],
+    source: FdaOrangeBookSource,
 ) -> Iterator[dict[str, Any]]:
     """
-    Generator that yields records for the Bronze layer.
+    Generator that reads files and yields raw records for the Bronze layer.
 
     Args:
-        files_map: Dictionary mapping logical roles to file paths.
-        source_instance: Instance of FdaOrangeBookSource for hashing.
+        files_map: Dictionary mapping roles (e.g., 'products') to lists of file paths.
+        source: Instance of FdaOrangeBookSource for hashing and utility.
 
     Yields:
-        Dictionary representing a Bronze record.
+        Dictionary containing metadata and raw content for each line.
     """
     ingestion_ts = datetime.now(timezone.utc).isoformat()
 
     for role, file_paths in files_map.items():
         for file_path in file_paths:
-            logger.info(f"Processing {role} file: {file_path}")
+            logger.info(f"Processing {file_path} for role {role}")
 
-            # Calculate hash once per file
             try:
-                file_hash = source_instance.calculate_file_hash(file_path)
+                # Calculate hash
+                source_hash = source.calculate_file_hash(file_path)
             except Exception as e:
-                logger.error(f"Skipping file {file_path} due to hash error: {e}")
+                logger.error(f"Failed to calculate hash for {file_path}: {e}")
                 continue
 
             try:
-                # Open with configured encoding
                 with open(
                     file_path,
                     "r",
                     encoding=FdaConfig.ENCODING,
-                    errors=FdaConfig.ENCODING_ERRORS,
+                    errors=FdaConfig.ENCODING_ERRORS
                 ) as f:
-                    for line_idx, line in enumerate(f):
+                    for line_idx, line in enumerate(f, start=1):
                         line_content = line.strip()
                         if not line_content:
                             continue
 
-                        record = {
+                        yield {
                             "source_file": file_path.name,
                             "ingestion_ts": ingestion_ts,
-                            "source_hash": file_hash,
-                            "raw_content": {"line_number": line_idx + 1, "data": line_content},
-                            "role": role,  # Optional but useful for debugging
+                            "source_hash": source_hash,
+                            "raw_content": {
+                                "line_number": line_idx,
+                                "data": line_content,
+                            },
+                            "role": role,
                         }
-                        yield record
             except Exception as e:
-                logger.error(f"Error reading file {file_path}: {e}")
-                # We might want to raise here or skip.
-                # For "Lossless" attempts, failing the batch might be better than partial data?
-                # But dlt handles errors. Let's log and continue for now, or raise if critical.
-                # Given strict requirements, let's assume if we can't read a file we just fail the
-                # iterator for that file.
+                logger.error(f"Failed to read file {file_path}: {e}")
                 continue
+
+
+@dlt.resource(name="bronze_fda_orange_book", write_disposition="append")
+def bronze_resource(
+    files_map: dict[str, list[Path]],
+    source: FdaOrangeBookSource,
+) -> Iterator[dict[str, Any]]:
+    """
+    DLT resource wrapper for the Bronze layer ingestion.
+
+    Args:
+        files_map: Dictionary mapping roles to file paths.
+        source: FdaOrangeBookSource instance.
+
+    Returns:
+        Iterator of bronze records.
+    """
+    yield from yield_bronze_records(files_map, source)
