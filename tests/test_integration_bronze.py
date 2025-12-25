@@ -14,8 +14,6 @@ import hashlib
 import zipfile
 from pathlib import Path
 
-import pytest
-
 from coreason_etl_fda_orange_book.bronze.ingestion import yield_bronze_records
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
