@@ -60,6 +60,42 @@ def test_download_archive_failure(fda_source: FdaOrangeBookSource, tmp_path: Pat
             fda_source.download_archive(target_file)
 
 
+def test_download_empty_content(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test download of empty content."""
+    target_file = tmp_path / "empty.zip"
+
+    mock_response = MagicMock()
+    mock_response.iter_content.return_value = []
+    mock_response.raise_for_status.return_value = None
+
+    with patch("requests.get", return_value=mock_response) as mock_get:
+        mock_get.return_value.__enter__.return_value = mock_response
+        fda_source.download_archive(target_file)
+
+    assert target_file.exists()
+    assert target_file.stat().st_size == 0
+
+
+def test_download_destination_parent_missing(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test behavior when destination directory does not exist."""
+    # current implementation just opens file, so it should raise FileNotFoundError (OSError)
+    # The current implementation wraps RequestException but not OSError from file opening.
+    # Ideally it should probably handle it or let it bubble up as a system error.
+    # Let's verify it raises whatever open() raises, or we might want to improve the implementation later.
+    # For now, let's just see what happens.
+
+    target_file = tmp_path / "missing_dir" / "test.zip"
+
+    mock_response = MagicMock()
+    mock_response.iter_content.return_value = [b"data"]
+    mock_response.raise_for_status.return_value = None
+
+    with patch("requests.get", return_value=mock_response) as mock_get:
+        mock_get.return_value.__enter__.return_value = mock_response
+        with pytest.raises(FileNotFoundError):
+            fda_source.download_archive(target_file)
+
+
 def test_extract_archive_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test successful extraction."""
     zip_path = tmp_path / "good.zip"
@@ -104,11 +140,7 @@ def test_extract_archive_zip_slip(fda_source: FdaOrangeBookSource, tmp_path: Pat
     extract_dir.mkdir()
 
     # Create a zip with a file attempting to traverse directories
-    # Note: python's zipfile module might sanitize this by default or raise a warning,
-    # but we want to ensure our logic handles/skips it.
     with zipfile.ZipFile(zip_path, "w") as zf:
-        # We manually add a file with a path traversal name
-        # Using writestr with a specific arcname
         zf.writestr("../evil.txt", "I am evil")
         zf.writestr("good.txt", "I am good")
 
@@ -118,11 +150,6 @@ def test_extract_archive_zip_slip(fda_source: FdaOrangeBookSource, tmp_path: Pat
     assert (extract_dir / "good.txt").exists()
     assert not (extract_dir.parent / "evil.txt").exists()
 
-    # The implementation might skip it or sanitize it.
-    # Our implementation skips it if it's not relative to destination.
-
-    # Check that the evil file is NOT in the returned list
-    # The returned list contains full paths.
     evil_path = extract_dir.parent / "evil.txt"
     assert evil_path not in files
     assert len(files) == 1
@@ -142,6 +169,52 @@ def test_extract_archive_zip_slip_exception(fda_source: FdaOrangeBookSource, tmp
         files = fda_source.extract_archive(zip_path, extract_dir)
         # Should be empty because it catches the error and skips
         assert len(files) == 0
+
+
+def test_extract_nested_structure(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test extraction of nested directories."""
+    zip_path = tmp_path / "nested.zip"
+    extract_dir = tmp_path / "extracted_nested"
+
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("folder/subfolder/file.txt", "content")
+        zf.writestr("root.txt", "root")
+
+    files = fda_source.extract_archive(zip_path, extract_dir)
+
+    assert len(files) == 2
+    assert (extract_dir / "folder/subfolder/file.txt").exists()
+    assert (extract_dir / "root.txt").exists()
+
+
+def test_extract_overwrite_existing(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test that extraction overwrites existing files."""
+    zip_path = tmp_path / "overwrite.zip"
+    extract_dir = tmp_path / "extracted_overwrite"
+    extract_dir.mkdir()
+
+    # Pre-existing file
+    target_file = extract_dir / "file.txt"
+    target_file.write_text("old content")
+
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("file.txt", "new content")
+
+    fda_source.extract_archive(zip_path, extract_dir)
+
+    assert target_file.read_text() == "new content"
+
+
+def test_extract_empty_zip(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test extraction of a valid empty zip file."""
+    zip_path = tmp_path / "empty_valid.zip"
+    extract_dir = tmp_path / "extracted_empty"
+
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        pass  # Empty zip
+
+    files = fda_source.extract_archive(zip_path, extract_dir)
+    assert len(files) == 0
 
 
 def test_cleanup_file(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
