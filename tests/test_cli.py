@@ -20,26 +20,26 @@ from coreason_etl_fda_orange_book.main import main, parse_args
 class TestCli:
     """Tests for CLI arguments and execution."""
 
-    def test_parse_args_defaults(self):
+    def test_parse_args_defaults(self) -> None:
         """Test default arguments."""
         args = parse_args([])
         assert args.base_url == "https://www.fda.gov/media/76860/download?attachment"
         assert args.download_dir == Path("data/bronze")
 
-    def test_parse_args_custom(self):
+    def test_parse_args_custom(self) -> None:
         """Test custom arguments."""
         args = parse_args(["--base-url", "http://test.com/zip", "--download-dir", "/tmp/test"])
         assert args.base_url == "http://test.com/zip"
         assert args.download_dir == Path("/tmp/test")
 
     @patch("coreason_etl_fda_orange_book.main.run_pipeline")
-    def test_main_success(self, mock_run):
+    def test_main_success(self, mock_run: MagicMock) -> None:
         """Test successful main execution."""
         main([])
         mock_run.assert_called_once()
 
     @patch("coreason_etl_fda_orange_book.main.run_pipeline")
-    def test_main_failure(self, mock_run):
+    def test_main_failure(self, mock_run: MagicMock) -> None:
         """Test failure handling in main."""
         mock_run.side_effect = Exception("Boom")
         with pytest.raises(SystemExit):
@@ -47,7 +47,7 @@ class TestCli:
 
     @patch("coreason_etl_fda_orange_book.main.dlt.pipeline")
     @patch("coreason_etl_fda_orange_book.main.FdaOrangeBookSource")
-    def test_run_pipeline_flow(self, mock_source_cls, mock_pipeline, tmp_path):
+    def test_run_pipeline_flow(self, mock_source_cls: MagicMock, mock_pipeline: MagicMock, tmp_path: Path) -> None:
         """Test the run_pipeline orchestration logic (mocked)."""
         from coreason_etl_fda_orange_book.main import run_pipeline
 

@@ -50,6 +50,7 @@ def _parse_fda_date(date_str: Optional[str]) -> Optional[str]:
     try:
         # Polars str.to_date with format might be cleaner, but for row-wise UDF map_elements:
         from datetime import datetime
+
         dt = datetime.strptime(date_str.strip(), "%b %d, %Y")
         return dt.strftime("%Y-%m-%d")
     except ValueError:
@@ -107,39 +108,38 @@ def transform_products(file_path: Path, marketing_status_hint: str = "RX") -> pl
             return pl.col(real_name).cast(pl.String)
         return pl.lit(None).cast(pl.String)
 
-    df_silver = df.select([
-        safe_col("Ingredient").alias("ingredient"),
-        safe_col("Trade_Name").alias("trade_name"),
-        safe_col("Applicant").alias("applicant_short"),
-        safe_col("Strength").alias("strength"),
-        safe_col_str("Appl_No").str.pad_start(6, "0").alias("application_number"),
-        safe_col_str("Product_No").str.pad_start(3, "0").alias("product_number"),
-        safe_col("TE_Code").alias("te_code"),
-        safe_col("Approval_Date").map_elements(
-             lambda x: _parse_fda_date(x), return_dtype=pl.String
-        ).str.to_date("%Y-%m-%d", strict=False).alias("approval_date"),
-        pl.when(safe_col("RLD").str.to_uppercase() == "NO")
-          .then(False)
-          .when(safe_col("RLD").str.to_uppercase() == "YES")
-          .then(True)
-          .otherwise(False)
-          .alias("is_rld"),
-        (pl.col(col_map["type"]) if has_type_col else pl.lit(marketing_status_hint))
-        .alias("marketing_status")
-    ])
+    df_silver = df.select(
+        [
+            safe_col("Ingredient").alias("ingredient"),
+            safe_col("Trade_Name").alias("trade_name"),
+            safe_col("Applicant").alias("applicant_short"),
+            safe_col("Strength").alias("strength"),
+            safe_col_str("Appl_No").str.pad_start(6, "0").alias("application_number"),
+            safe_col_str("Product_No").str.pad_start(3, "0").alias("product_number"),
+            safe_col("TE_Code").alias("te_code"),
+            safe_col("Approval_Date")
+            .map_elements(lambda x: _parse_fda_date(x), return_dtype=pl.String)
+            .str.to_date("%Y-%m-%d", strict=False)
+            .alias("approval_date"),
+            pl.when(safe_col("RLD").str.to_uppercase() == "NO")
+            .then(False)
+            .when(safe_col("RLD").str.to_uppercase() == "YES")
+            .then(True)
+            .otherwise(False)
+            .alias("is_rld"),
+            (pl.col(col_map["type"]) if has_type_col else pl.lit(marketing_status_hint)).alias("marketing_status"),
+        ]
+    )
 
     df_silver = df_silver.with_columns(
-        (pl.col("application_number") + pl.col("product_number") + pl.col("marketing_status"))
-        .alias("source_id")
+        (pl.col("application_number") + pl.col("product_number") + pl.col("marketing_status")).alias("source_id")
     )
 
     df_silver = df_silver.with_columns(
         pl.col("source_id").map_elements(_generate_coreason_id, return_dtype=pl.String).alias("coreason_id")
     )
 
-    return df_silver.filter(
-        pl.col("source_id").is_not_null() & (pl.col("source_id") != "")
-    )
+    return df_silver.filter(pl.col("source_id").is_not_null() & (pl.col("source_id") != ""))
 
 
 def transform_patents(file_path: Path) -> pl.DataFrame:
@@ -167,33 +167,30 @@ def transform_patents(file_path: Path) -> pl.DataFrame:
         return pl.lit(None).cast(pl.String)
 
     def bool_flag(col_name: str) -> pl.Expr:
-        return pl.when(safe_col(col_name).str.to_uppercase() == "Y") \
-                 .then(True) \
-                 .otherwise(False)
+        return pl.when(safe_col(col_name).str.to_uppercase() == "Y").then(True).otherwise(False)
 
-    df_silver = df.select([
-        safe_col_str("Appl_No").str.pad_start(6, "0").alias("application_number"),
-        safe_col_str("Product_No").str.pad_start(3, "0").alias("product_number"),
-        safe_col_str("Patent_No").alias("patent_number"),
-
-        safe_col("Patent_Expire_Date_Text").map_elements(
-             lambda x: _parse_fda_date(x), return_dtype=pl.String
-        ).str.to_date("%Y-%m-%d", strict=False).alias("patent_expiry_date"),
-
-        bool_flag("Drug_Substance_Flag").alias("is_drug_substance"),
-        bool_flag("Drug_Product_Flag").alias("is_drug_product"),
-        safe_col("Patent_Use_Code").alias("patent_use_code"),
-        bool_flag("Delist_Flag").alias("is_delisted"),
-
-        # Submission Date is not always present or explicitly named consistently, trying best guess
-        safe_col("Submission_Date").map_elements(
-             lambda x: _parse_fda_date(x), return_dtype=pl.String
-        ).str.to_date("%Y-%m-%d", strict=False).alias("submission_date"),
-    ])
-
-    return df_silver.filter(
-        pl.col("application_number").is_not_null() & (pl.col("patent_number").is_not_null())
+    df_silver = df.select(
+        [
+            safe_col_str("Appl_No").str.pad_start(6, "0").alias("application_number"),
+            safe_col_str("Product_No").str.pad_start(3, "0").alias("product_number"),
+            safe_col_str("Patent_No").alias("patent_number"),
+            safe_col("Patent_Expire_Date_Text")
+            .map_elements(lambda x: _parse_fda_date(x), return_dtype=pl.String)
+            .str.to_date("%Y-%m-%d", strict=False)
+            .alias("patent_expiry_date"),
+            bool_flag("Drug_Substance_Flag").alias("is_drug_substance"),
+            bool_flag("Drug_Product_Flag").alias("is_drug_product"),
+            safe_col("Patent_Use_Code").alias("patent_use_code"),
+            bool_flag("Delist_Flag").alias("is_delisted"),
+            # Submission Date is not always present or explicitly named consistently, trying best guess
+            safe_col("Submission_Date")
+            .map_elements(lambda x: _parse_fda_date(x), return_dtype=pl.String)
+            .str.to_date("%Y-%m-%d", strict=False)
+            .alias("submission_date"),
+        ]
     )
+
+    return df_silver.filter(pl.col("application_number").is_not_null() & (pl.col("patent_number").is_not_null()))
 
 
 def transform_exclusivity(file_path: Path) -> pl.DataFrame:
@@ -220,16 +217,16 @@ def transform_exclusivity(file_path: Path) -> pl.DataFrame:
             return pl.col(real_name).cast(pl.String)
         return pl.lit(None).cast(pl.String)
 
-    df_silver = df.select([
-        safe_col_str("Appl_No").str.pad_start(6, "0").alias("application_number"),
-        safe_col_str("Product_No").str.pad_start(3, "0").alias("product_number"),
-        safe_col("Exclusivity_Code").alias("exclusivity_code"),
-
-        safe_col("Exclusivity_Date").map_elements(
-             lambda x: _parse_fda_date(x), return_dtype=pl.String
-        ).str.to_date("%Y-%m-%d", strict=False).alias("exclusivity_end_date"),
-    ])
-
-    return df_silver.filter(
-        pl.col("application_number").is_not_null() & (pl.col("exclusivity_code").is_not_null())
+    df_silver = df.select(
+        [
+            safe_col_str("Appl_No").str.pad_start(6, "0").alias("application_number"),
+            safe_col_str("Product_No").str.pad_start(3, "0").alias("product_number"),
+            safe_col("Exclusivity_Code").alias("exclusivity_code"),
+            safe_col("Exclusivity_Date")
+            .map_elements(lambda x: _parse_fda_date(x), return_dtype=pl.String)
+            .str.to_date("%Y-%m-%d", strict=False)
+            .alias("exclusivity_end_date"),
+        ]
     )
+
+    return df_silver.filter(pl.col("application_number").is_not_null() & (pl.col("exclusivity_code").is_not_null()))

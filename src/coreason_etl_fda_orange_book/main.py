@@ -83,10 +83,7 @@ def run_pipeline(base_url: str, download_dir: Path) -> None:
     # 2. Bronze Layer
     logger.info("Step 2: Bronze Layer Ingestion...")
     pipeline = dlt.pipeline(
-        pipeline_name="fda_orange_book",
-        destination="postgresql",
-        dataset_name="bronze",
-        progress="log"
+        pipeline_name="fda_orange_book", destination="postgresql", dataset_name="bronze", progress="log"
     )
 
     # We use 'run' with the resource.
@@ -104,26 +101,22 @@ def run_pipeline(base_url: str, download_dir: Path) -> None:
     # Medallion often uses separate schemas: bronze, silver, gold.
 
     pipeline_silver = dlt.pipeline(
-        pipeline_name="fda_orange_book",
-        destination="postgresql",
-        dataset_name="silver",
-        progress="log"
+        pipeline_name="fda_orange_book", destination="postgresql", dataset_name="silver", progress="log"
     )
 
-    silver_info = pipeline_silver.run([
-        silver_products_resource(files_map),
-        silver_patents_resource(files_map),
-        silver_exclusivity_resource(files_map),
-    ])
+    silver_info = pipeline_silver.run(
+        [
+            silver_products_resource(files_map),
+            silver_patents_resource(files_map),
+            silver_exclusivity_resource(files_map),
+        ]
+    )
     logger.info(f"Silver Load Info: {silver_info}")
 
     # 4. Gold Layer
     logger.info("Step 4: Gold Layer Ingestion...")
     pipeline_gold = dlt.pipeline(
-        pipeline_name="fda_orange_book",
-        destination="postgresql",
-        dataset_name="gold",
-        progress="log"
+        pipeline_name="fda_orange_book", destination="postgresql", dataset_name="gold", progress="log"
     )
 
     gold_info = pipeline_gold.run(gold_products_resource(files_map))

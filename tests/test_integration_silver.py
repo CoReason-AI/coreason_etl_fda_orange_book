@@ -25,31 +25,31 @@ from coreason_etl_fda_orange_book.silver.ingestion import (
 class TestSilverIntegration:
     """Integration tests for Silver layer DLT resources."""
 
-    @pytest.fixture
+    @pytest.fixture(name="mock_files")  # type: ignore
     def mock_files(self, tmp_path: Path) -> dict[str, list[Path]]:
         """Create mock files for testing."""
         # Products
         p_path = tmp_path / "products.txt"
         p_content = (
-            "Ingredient~DF;Route~Trade_Name~Applicant~Strength~Appl_Type~Appl_No~Product_No~TE_Code~Approval_Date~RLD~Type~Applicant_Full_Name\n"
-            "Budesonide~AEROSOL, FOAM;RECTAL~UCERIS~SALIX~2MG/ACTUATION~N~205613~001~~Oct 7, 2014~Yes~RX~SALIX PHARMACEUTICALS INC\n"
+            "Ingredient~DF;Route~Trade_Name~Applicant~Strength~Appl_Type~Appl_No~Product_No~TE_Code~"
+            "Approval_Date~RLD~Type~Applicant_Full_Name\n"
+            "Budesonide~AEROSOL, FOAM;RECTAL~UCERIS~SALIX~2MG/ACTUATION~N~205613~001~~Oct 7, 2014~"
+            "Yes~RX~SALIX PHARMACEUTICALS INC\n"
         )
         p_path.write_text(p_content, encoding="utf-8")
 
         # Patents
         pat_path = tmp_path / "patent.txt"
         pat_content = (
-            "Appl_Type~Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~Drug_Product_Flag~Patent_Use_Code~Delist_Flag~Submission_Date\n"
+            "Appl_Type~Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~"
+            "Drug_Product_Flag~Patent_Use_Code~Delist_Flag~Submission_Date\n"
             "N~205613~001~7654321~Jan 15, 2025~Y~N~U-123~N~Feb 1, 2010"
         )
         pat_path.write_text(pat_content, encoding="utf-8")
 
         # Exclusivity
         exc_path = tmp_path / "exclusivity.txt"
-        exc_content = (
-            "Appl_Type~Appl_No~Product_No~Exclusivity_Code~Exclusivity_Date\n"
-            "N~205613~001~ODE~Mar 10, 2026"
-        )
+        exc_content = "Appl_Type~Appl_No~Product_No~Exclusivity_Code~Exclusivity_Date\nN~205613~001~ODE~Mar 10, 2026"
         exc_path.write_text(exc_content, encoding="utf-8")
 
         return {
@@ -58,46 +58,34 @@ class TestSilverIntegration:
             "exclusivity": [exc_path],
         }
 
-    def test_silver_products_resource(self, mock_files):
+    def test_silver_products_resource(self, mock_files: dict[str, list[Path]]) -> None:
         """Test Silver Products resource yields data."""
         data = list(silver_products_resource(mock_files))
         assert len(data) == 1
         assert data[0]["ingredient"] == "Budesonide"
         assert data[0]["coreason_id"] is not None
 
-    def test_silver_patents_resource(self, mock_files):
+    def test_silver_patents_resource(self, mock_files: dict[str, list[Path]]) -> None:
         """Test Silver Patents resource yields data."""
         data = list(silver_patents_resource(mock_files))
         assert len(data) == 1
         assert data[0]["patent_number"] == "7654321"
 
-    def test_silver_exclusivity_resource(self, mock_files):
+    def test_silver_exclusivity_resource(self, mock_files: dict[str, list[Path]]) -> None:
         """Test Silver Exclusivity resource yields data."""
         data = list(silver_exclusivity_resource(mock_files))
         assert len(data) == 1
         assert data[0]["exclusivity_code"] == "ODE"
 
-    def test_pipeline_run_mock(self, mock_files):
+    def test_pipeline_run_mock(self, mock_files: dict[str, list[Path]]) -> None:
         """Test running the DLT pipeline with Silver resources."""
-        pipeline = dlt.pipeline(
-            pipeline_name="test_silver",
-            destination="duckdb", # Use in-memory duckdb for integration test if possible, or dummy
-            dataset_name="silver_test"
-        )
-
-        # We can just extract to a list to avoid full DB overhead in unit test env if duckdb not installed
-        # But 'destination="duckdb"' requires dlt[duckdb].
-        # We'll use 'dummy' destination or just iterate as above.
-
-        # dlt has a 'dummy' destination? No, let's use the 'extract' method which just gets data.
-
-        # Actually, let's stick to testing the resources yield correctly (unit test style)
-        # as verified above. Full pipeline run requires a destination.
+        # Assign to _ to avoid unused variable error
+        _ = dlt.pipeline(pipeline_name="test_silver", destination="duckdb", dataset_name="silver_test")
         pass
 
-    def test_missing_files_in_map(self):
+    def test_missing_files_in_map(self) -> None:
         """Test handling of missing keys in file map."""
-        empty_map = {}
+        empty_map: dict[str, list[Path]] = {}
         assert list(silver_products_resource(empty_map)) == []
         assert list(silver_patents_resource(empty_map)) == []
         assert list(silver_exclusivity_resource(empty_map)) == []

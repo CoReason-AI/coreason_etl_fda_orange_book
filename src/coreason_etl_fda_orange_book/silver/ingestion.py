@@ -61,7 +61,16 @@ def silver_products_resource(
         yield from df.iter_rows(named=True)
 
 
-@dlt.resource(name="silver_patents", write_disposition="merge", primary_key=["application_number", "product_number", "patent_number", "patent_use_code"])
+@dlt.resource(
+    name="silver_patents",
+    write_disposition="merge",
+    primary_key=[
+        "application_number",
+        "product_number",
+        "patent_number",
+        "patent_use_code",
+    ],
+)
 def silver_patents_resource(
     files_map: dict[str, list[Path]],
 ) -> Iterator[dict[str, Any]]:
@@ -86,7 +95,15 @@ def silver_patents_resource(
         yield from df.iter_rows(named=True)
 
 
-@dlt.resource(name="silver_exclusivity", write_disposition="merge", primary_key=["application_number", "product_number", "exclusivity_code"])
+@dlt.resource(
+    name="silver_exclusivity",
+    write_disposition="merge",
+    primary_key=[
+        "application_number",
+        "product_number",
+        "exclusivity_code",
+    ],
+)
 def silver_exclusivity_resource(
     files_map: dict[str, list[Path]],
 ) -> Iterator[dict[str, Any]]:

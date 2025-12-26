@@ -8,51 +8,59 @@
 #
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
-"""Tests for the FdaOrangeBookSource class."""
+"""Tests for source module."""
 
 import zipfile
 from pathlib import Path
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
-
+import requests  # type: ignore
 from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
-@pytest.fixture
+@pytest.fixture(name="fda_source")  # type: ignore
 def fda_source() -> FdaOrangeBookSource:
-    """Fixture for FdaOrangeBookSource."""
-    return FdaOrangeBookSource("http://mock-fda.gov/download")
+    """Fixture for FdaOrangeBookSource instance."""
+    return FdaOrangeBookSource()
 
 
-def test_init_default_url() -> None:
-    """Test that the default URL is used when none is provided."""
-    source = FdaOrangeBookSource()
-    assert source.base_url == FdaConfig.DEFAULT_BASE_URL
+def test_init_defaults(fda_source: FdaOrangeBookSource) -> None:
+    """Test default initialization."""
+    assert fda_source.base_url == FdaConfig.DEFAULT_BASE_URL
+
+
+def test_init_custom() -> None:
+    """Test custom initialization."""
+    url = "http://test.com/zip"
+    source = FdaOrangeBookSource(base_url=url)
+    assert source.base_url == url
 
 
 def test_download_archive_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test successful download."""
     target_file = tmp_path / "test.zip"
 
-    # Mock requests.get
+    # Mock response
     mock_response = MagicMock()
     mock_response.iter_content.return_value = [b"chunk1", b"chunk2"]
     mock_response.raise_for_status.return_value = None
 
     with patch("requests.get", return_value=mock_response) as mock_get:
+        # Need to support context manager
         mock_get.return_value.__enter__.return_value = mock_response
         fda_source.download_archive(target_file)
 
-    assert target_file.exists()
-    assert target_file.read_bytes() == b"chunk1chunk2"
+        mock_get.assert_called_with(fda_source.base_url, stream=True, timeout=60)
+        assert target_file.exists()
+        assert target_file.read_bytes() == b"chunk1chunk2"
 
 
 def test_download_archive_failure(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
-    """Test download failure raises SourceConnectionError."""
+    """Test download failure."""
     target_file = tmp_path / "test.zip"
 
     with patch("requests.get", side_effect=requests.RequestException("Boom")):

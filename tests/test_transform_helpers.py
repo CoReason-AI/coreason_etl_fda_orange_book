@@ -13,13 +13,15 @@
 from pathlib import Path
 from unittest.mock import patch
 
+import polars as pl
+
 from coreason_etl_fda_orange_book.silver.transform import _clean_read_csv, _parse_fda_date
 
 
 class TestTransformHelpers:
     """Tests for helper functions in transform.py."""
 
-    def test_clean_read_csv_exception(self, tmp_path: Path):
+    def test_clean_read_csv_exception(self, tmp_path: Path) -> None:
         """Test safe reading of CSV when exception occurs."""
         # Using a directory path instead of file will cause read_csv to fail (IsADirectoryError)
         # or file not found if we give non-existent
@@ -36,7 +38,7 @@ class TestTransformHelpers:
             df = _clean_read_csv(f_path)
             assert df.is_empty()
 
-    def test_parse_fda_date_value_error(self):
+    def test_parse_fda_date_value_error(self) -> None:
         """Test ValueError handling in date parser."""
         # "Invalid" date string that doesn't match format
         assert _parse_fda_date("Not a date") is None

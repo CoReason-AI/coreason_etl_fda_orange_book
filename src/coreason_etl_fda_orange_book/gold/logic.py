@@ -18,7 +18,7 @@ def create_gold_view(
     products_df: pl.DataFrame,
     patents_df: pl.DataFrame,
     exclusivity_df: pl.DataFrame,
-    include_discontinued: bool = False
+    include_discontinued: bool = False,
 ) -> pl.DataFrame:
     """
     Create the denormalized Gold view.
@@ -61,37 +61,30 @@ def create_gold_view(
     if not patents_df.is_empty():
         # Select relevant patent columns to join (exclude duplicate keys if needed, but 'on' handles it)
         # Note: join keys must match type (String).
-        joined_df = joined_df.join(
-            patents_df,
-            on=["application_number", "product_number"],
-            how="left",
-            coalesce=True
-        )
+        joined_df = joined_df.join(patents_df, on=["application_number", "product_number"], how="left", coalesce=True)
     else:
         # Add null columns for patent schema consistency?
         # Polars lazy evaluation might handle this if we typed it, but for eager:
         # We can let the consumer model handle missing cols or add them here.
         # Let's add them as nulls to ensure consistent schema.
         patent_cols = [
-            "patent_number", "patent_expiry_date", "is_drug_substance",
-            "is_drug_product", "patent_use_code", "is_delisted", "submission_date"
+            "patent_number",
+            "patent_expiry_date",
+            "is_drug_substance",
+            "is_drug_product",
+            "patent_use_code",
+            "is_delisted",
+            "submission_date",
         ]
-        joined_df = joined_df.with_columns([
-            pl.lit(None).alias(c) for c in patent_cols
-        ])
+        joined_df = joined_df.with_columns([pl.lit(None).alias(c) for c in patent_cols])
 
     # Exclusivity Join
     if not exclusivity_df.is_empty():
         joined_df = joined_df.join(
-            exclusivity_df,
-            on=["application_number", "product_number"],
-            how="left",
-            coalesce=True
+            exclusivity_df, on=["application_number", "product_number"], how="left", coalesce=True
         )
     else:
         excl_cols = ["exclusivity_code", "exclusivity_end_date"]
-        joined_df = joined_df.with_columns([
-            pl.lit(None).alias(c) for c in excl_cols
-        ])
+        joined_df = joined_df.with_columns([pl.lit(None).alias(c) for c in excl_cols])
 
     return joined_df

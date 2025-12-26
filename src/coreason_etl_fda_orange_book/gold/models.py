@@ -22,6 +22,7 @@ class GoldProductEnriched(SilverProduct):
     """
     Gold layer model: Denormalized Product view enriched with Patents and Exclusivity.
     """
+
     model_config = ConfigDict(frozen=True)
 
     # Enriched Fields

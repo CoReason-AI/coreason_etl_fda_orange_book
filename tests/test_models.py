@@ -17,7 +17,7 @@ from coreason_etl_fda_orange_book.silver.models import SilverExclusivity, Silver
 class TestModels:
     """Test instantiation of Pydantic models to ensure coverage."""
 
-    def test_silver_product_model(self):
+    def test_silver_product_model(self) -> None:
         """Test SilverProduct model."""
         m = SilverProduct(
             coreason_id="id",
@@ -29,11 +29,11 @@ class TestModels:
             application_number="000123",
             product_number="001",
             is_rld=True,
-            marketing_status="RX"
+            marketing_status="RX",
         )
         assert m.marketing_status == "RX"
 
-    def test_silver_patent_model(self):
+    def test_silver_patent_model(self) -> None:
         """Test SilverPatent model."""
         m = SilverPatent(
             application_number="000123",
@@ -41,20 +41,16 @@ class TestModels:
             patent_number="12345",
             is_drug_substance=True,
             is_drug_product=False,
-            is_delisted=False
+            is_delisted=False,
         )
         assert m.patent_number == "12345"
 
-    def test_silver_exclusivity_model(self):
+    def test_silver_exclusivity_model(self) -> None:
         """Test SilverExclusivity model."""
-        m = SilverExclusivity(
-            application_number="000123",
-            product_number="001",
-            exclusivity_code="EXC"
-        )
+        m = SilverExclusivity(application_number="000123", product_number="001", exclusivity_code="EXC")
         assert m.exclusivity_code == "EXC"
 
-    def test_gold_product_model(self):
+    def test_gold_product_model(self) -> None:
         """Test GoldProductEnriched model."""
         m = GoldProductEnriched(
             coreason_id="id",
@@ -68,6 +64,6 @@ class TestModels:
             is_rld=True,
             marketing_status="RX",
             search_vector_text="tn ing",
-            patent_number="pat1"
+            patent_number="pat1",
         )
         assert m.patent_number == "pat1"

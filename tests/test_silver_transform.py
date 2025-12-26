@@ -13,10 +13,8 @@
 from datetime import date
 from pathlib import Path
 
-import polars as pl
 import pytest
 
-from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.silver.transform import (
     _generate_coreason_id,
     _parse_fda_date,
@@ -29,7 +27,7 @@ from coreason_etl_fda_orange_book.silver.transform import (
 class TestSilverTransform:
     """Tests for transformation logic."""
 
-    def test_generate_coreason_id(self):
+    def test_generate_coreason_id(self) -> None:
         """Test UUID generation consistency."""
         sid = "001234001RX"
         uid1 = _generate_coreason_id(sid)
@@ -37,7 +35,7 @@ class TestSilverTransform:
         assert uid1 == uid2
         assert len(uid1) == 36
 
-    def test_parse_fda_date(self):
+    def test_parse_fda_date(self) -> None:
         """Test date parsing logic."""
         assert _parse_fda_date("Jan 1, 1982") == "1982-01-01"
         assert _parse_fda_date("Approved prior to Jan 1, 1982") is None
@@ -45,11 +43,13 @@ class TestSilverTransform:
         assert _parse_fda_date("") is None
         assert _parse_fda_date("Invalid") is None
 
-    def test_transform_products_happy_path(self, tmp_path: Path):
+    def test_transform_products_happy_path(self, tmp_path: Path) -> None:
         """Test standard transformation with a valid file."""
         content = (
-            "Ingredient~DF;Route~Trade_Name~Applicant~Strength~Appl_Type~Appl_No~Product_No~TE_Code~Approval_Date~RLD~Type~Applicant_Full_Name\n"
-            "Budesonide~AEROSOL, FOAM;RECTAL~UCERIS~SALIX~2MG/ACTUATION~N~205613~001~~Oct 7, 2014~Yes~RX~SALIX PHARMACEUTICALS INC\n"
+            "Ingredient~DF;Route~Trade_Name~Applicant~Strength~Appl_Type~Appl_No~Product_No~TE_Code~"
+            "Approval_Date~RLD~Type~Applicant_Full_Name\n"
+            "Budesonide~AEROSOL, FOAM;RECTAL~UCERIS~SALIX~2MG/ACTUATION~N~205613~001~~Oct 7, 2014~"
+            "Yes~RX~SALIX PHARMACEUTICALS INC\n"
         )
         f_path = tmp_path / "products.txt"
         f_path.write_text(content, encoding="utf-8")
@@ -63,7 +63,7 @@ class TestSilverTransform:
         assert row1["is_rld"] is True
         assert row1["marketing_status"] == "RX"
 
-    def test_transform_products_padding(self, tmp_path: Path):
+    def test_transform_products_padding(self, tmp_path: Path) -> None:
         """Test padding of Appl_No and Product_No."""
         content = (
             "Ingredient~Trade_Name~Applicant~Strength~Appl_No~Product_No~TE_Code~Approval_Date~RLD~Type\n"
@@ -77,7 +77,7 @@ class TestSilverTransform:
         assert row["application_number"] == "000123"
         assert row["product_number"] == "001"
 
-    def test_transform_products_missing_type_column(self, tmp_path: Path):
+    def test_transform_products_missing_type_column(self, tmp_path: Path) -> None:
         """Test fallback when 'Type' column is missing."""
         content = (
             "Ingredient~Trade_Name~Applicant~Strength~Appl_No~Product_No~TE_Code~Approval_Date~RLD\n"
@@ -90,10 +90,11 @@ class TestSilverTransform:
         row = df.row(0, named=True)
         assert row["marketing_status"] == "DISCN"
 
-    def test_transform_patents(self, tmp_path: Path):
+    def test_transform_patents(self, tmp_path: Path) -> None:
         """Test patent transformation."""
         content = (
-            "Appl_Type~Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~Drug_Product_Flag~Patent_Use_Code~Delist_Flag~Submission_Date\n"
+            "Appl_Type~Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~"
+            "Drug_Product_Flag~Patent_Use_Code~Delist_Flag~Submission_Date\n"
             "N~020563~001~7654321~Jan 15, 2025~Y~N~U-123~N~Feb 1, 2010"
         )
         f_path = tmp_path / "patent.txt"
@@ -111,12 +112,9 @@ class TestSilverTransform:
         assert row["is_delisted"] is False
         assert row["submission_date"] == date(2010, 2, 1)
 
-    def test_transform_exclusivity(self, tmp_path: Path):
+    def test_transform_exclusivity(self, tmp_path: Path) -> None:
         """Test exclusivity transformation."""
-        content = (
-            "Appl_Type~Appl_No~Product_No~Exclusivity_Code~Exclusivity_Date\n"
-            "N~123456~002~ODE~Mar 10, 2026"
-        )
+        content = "Appl_Type~Appl_No~Product_No~Exclusivity_Code~Exclusivity_Date\nN~123456~002~ODE~Mar 10, 2026"
         f_path = tmp_path / "exclusivity.txt"
         f_path.write_text(content, encoding="utf-8")
 
@@ -128,7 +126,7 @@ class TestSilverTransform:
         assert row["exclusivity_code"] == "ODE"
         assert row["exclusivity_end_date"] == date(2026, 3, 10)
 
-    def test_empty_and_bad_files(self, tmp_path: Path):
+    def test_empty_and_bad_files(self, tmp_path: Path) -> None:
         """Test handling of empty and bad files for all transforms."""
         f_path = tmp_path / "empty.txt"
         f_path.write_text("", encoding="utf-8")
