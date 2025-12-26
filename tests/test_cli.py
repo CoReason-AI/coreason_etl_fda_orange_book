@@ -11,53 +11,63 @@
 """Tests for the CLI entry point."""
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from coreason_etl_fda_orange_book.config import FdaConfig
-from coreason_etl_fda_orange_book.main import main, parse_args, setup_logging
+from coreason_etl_fda_orange_book.main import main, parse_args
 
 
-def test_parse_args_defaults() -> None:
-    """Test argument parsing with default values."""
-    args = parse_args([])
-    assert args.base_url == FdaConfig.DEFAULT_BASE_URL
-    assert args.download_dir == FdaConfig.DEFAULT_DOWNLOAD_DIR
+class TestCli:
+    """Tests for CLI arguments and execution."""
 
+    def test_parse_args_defaults(self) -> None:
+        """Test default arguments."""
+        args = parse_args([])
+        assert args.base_url == "https://www.fda.gov/media/76860/download?attachment"
+        assert args.download_dir == Path("data/bronze")
 
-def test_parse_args_custom() -> None:
-    """Test argument parsing with custom values."""
-    custom_url = "http://example.com/zip"
-    custom_dir = "/tmp/custom"
-    args = parse_args(["--base-url", custom_url, "--download-dir", custom_dir])
-    assert args.base_url == custom_url
-    assert args.download_dir == Path(custom_dir)
+    def test_parse_args_custom(self) -> None:
+        """Test custom arguments."""
+        args = parse_args(["--base-url", "http://test.com/zip", "--download-dir", "/tmp/test"])
+        assert args.base_url == "http://test.com/zip"
+        assert args.download_dir == Path("/tmp/test")
 
-
-def test_setup_logging(capsys: pytest.CaptureFixture[str]) -> None:
-    """Test logging setup."""
-    # This is hard to test side effects of loguru, but we can check it runs without error
-    # and maybe check env var handling.
-    with patch.dict("os.environ", {"LOG_LEVEL": "DEBUG"}):
-        setup_logging()
-
-    # We can't easily assert loguru output to stderr with capsys because loguru handles it specially,
-    # but ensuring it doesn't crash is a baseline.
-
-
-def test_main_execution() -> None:
-    """Test the main function runs through."""
-    with patch("coreason_etl_fda_orange_book.main.logger") as mock_logger:
+    @patch("coreason_etl_fda_orange_book.main.run_pipeline")
+    def test_main_success(self, mock_run: MagicMock) -> None:
+        """Test successful main execution."""
         main([])
+        mock_run.assert_called_once()
 
-        # Verify logger calls
-        mock_logger.info.assert_any_call("Starting FDA Orange Book ETL Pipeline")
-        mock_logger.info.assert_any_call("Pipeline initialized successfully.")
+    @patch("coreason_etl_fda_orange_book.main.run_pipeline")
+    def test_main_failure(self, mock_run: MagicMock) -> None:
+        """Test failure handling in main."""
+        mock_run.side_effect = Exception("Boom")
+        with pytest.raises(SystemExit):
+            main([])
 
+    @patch("coreason_etl_fda_orange_book.main.dlt.pipeline")
+    @patch("coreason_etl_fda_orange_book.main.FdaOrangeBookSource")
+    def test_run_pipeline_flow(self, mock_source_cls: MagicMock, mock_pipeline: MagicMock, tmp_path: Path) -> None:
+        """Test the run_pipeline orchestration logic (mocked)."""
+        from coreason_etl_fda_orange_book.main import run_pipeline
 
-def test_main_with_args() -> None:
-    """Test main with arguments."""
-    with patch("coreason_etl_fda_orange_book.main.logger") as mock_logger:
-        main(["--base-url", "http://test.com"])
-        mock_logger.info.assert_any_call("Using Base URL: http://test.com")
+        # Mock Source
+        mock_source = mock_source_cls.return_value
+        mock_source.extract_archive.return_value = []
+        mock_source.resolve_product_files.return_value = {"products": [], "patent": [], "exclusivity": []}
+
+        # Mock DLT Pipeline
+        mock_pipe_instance = mock_pipeline.return_value
+        mock_pipe_instance.run.return_value = "LoadInfo"
+
+        run_pipeline("http://test", tmp_path)
+
+        # Check calls
+        mock_source.download_archive.assert_called_once()
+        mock_source.extract_archive.assert_called_once()
+        mock_source.resolve_product_files.assert_called_once()
+
+        # Should be called 3 times (Bronze, Silver, Gold)
+        assert mock_pipeline.call_count == 3
+        assert mock_pipe_instance.run.call_count == 3
