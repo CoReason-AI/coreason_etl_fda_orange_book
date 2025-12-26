@@ -16,7 +16,6 @@ from typing import Any
 
 import dlt
 import polars as pl
-from loguru import logger
 
 from coreason_etl_fda_orange_book.gold.logic import create_gold_view
 from coreason_etl_fda_orange_book.silver.transform import (

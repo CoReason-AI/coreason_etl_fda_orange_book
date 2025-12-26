@@ -12,11 +12,11 @@
 
 import zipfile
 from pathlib import Path
-from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests  # type: ignore
+
 from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource

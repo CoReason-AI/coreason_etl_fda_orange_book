@@ -13,9 +13,9 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
-from coreason_etl_fda_orange_book.silver.models import SilverExclusivity, SilverPatent, SilverProduct
+from coreason_etl_fda_orange_book.silver.models import SilverProduct
 
 
 class GoldProductEnriched(SilverProduct):

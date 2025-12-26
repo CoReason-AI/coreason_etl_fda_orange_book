@@ -13,8 +13,6 @@
 from pathlib import Path
 from unittest.mock import patch
 
-import polars as pl
-
 from coreason_etl_fda_orange_book.silver.transform import _clean_read_csv, _parse_fda_date
 
 

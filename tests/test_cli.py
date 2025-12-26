@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from coreason_etl_fda_orange_book.main import main, parse_args
 
 

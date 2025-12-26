@@ -12,8 +12,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from coreason_etl_fda_orange_book.gold.ingestion import gold_products_resource
 from coreason_etl_fda_orange_book.silver.ingestion import (
     silver_exclusivity_resource,

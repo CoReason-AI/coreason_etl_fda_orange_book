@@ -13,8 +13,6 @@
 from datetime import date
 from pathlib import Path
 
-import pytest
-
 from coreason_etl_fda_orange_book.silver.transform import (
     _generate_coreason_id,
     _parse_fda_date,
