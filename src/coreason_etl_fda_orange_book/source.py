@@ -55,6 +55,12 @@ class FdaOrangeBookSource:
                     for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
                         f.write(chunk)
             logger.info("Download completed successfully.")
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                logger.error(f"Download link not found (404): {self.base_url}")
+                raise SourceSchemaError(f"Download link not found: {self.base_url}") from e
+            logger.error(f"HTTP error during download: {e}")
+            raise SourceConnectionError(f"HTTP error downloading from {self.base_url}: {e}") from e
         except requests.RequestException as e:
             logger.error(f"Failed to download archive: {e}")
             raise SourceConnectionError(f"Failed to download from {self.base_url}: {e}") from e

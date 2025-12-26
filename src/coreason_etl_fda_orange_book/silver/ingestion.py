@@ -12,11 +12,15 @@
 
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
 
 import dlt
 from loguru import logger
 
+from coreason_etl_fda_orange_book.silver.models import (
+    SilverExclusivity,
+    SilverPatent,
+    SilverProduct,
+)
 from coreason_etl_fda_orange_book.silver.transform import (
     transform_exclusivity,
     transform_patents,
@@ -24,10 +28,10 @@ from coreason_etl_fda_orange_book.silver.transform import (
 )
 
 
-@dlt.resource(name="silver_products", write_disposition="merge", primary_key="coreason_id")
+@dlt.resource(name="silver_products", write_disposition="replace", primary_key="coreason_id")
 def silver_products_resource(
     files_map: dict[str, list[Path]],
-) -> Iterator[dict[str, Any]]:
+) -> Iterator[SilverProduct]:
     """
     DLT resource for Silver Products.
 
@@ -35,7 +39,7 @@ def silver_products_resource(
         files_map: Dictionary mapping roles to file paths.
 
     Yields:
-        Dictionary records for the Silver Products table.
+        SilverProduct records for the Silver Products table.
     """
     if "products" not in files_map:
         logger.warning("No product files found in files_map for Silver layer.")
@@ -56,14 +60,13 @@ def silver_products_resource(
         if df.is_empty():
             continue
 
-        # Convert to list of dicts for DLT
-        # rows(named=True) returns iterator of dicts
-        yield from df.iter_rows(named=True)
+        for row in df.iter_rows(named=True):
+            yield SilverProduct(**row)
 
 
 @dlt.resource(
     name="silver_patents",
-    write_disposition="merge",
+    write_disposition="replace",
     primary_key=[
         "application_number",
         "product_number",
@@ -73,7 +76,7 @@ def silver_products_resource(
 )
 def silver_patents_resource(
     files_map: dict[str, list[Path]],
-) -> Iterator[dict[str, Any]]:
+) -> Iterator[SilverPatent]:
     """
     DLT resource for Silver Patents.
 
@@ -81,7 +84,7 @@ def silver_patents_resource(
         files_map: Dictionary mapping roles to file paths.
 
     Yields:
-        Dictionary records for the Silver Patents table.
+        SilverPatent records for the Silver Patents table.
     """
     if "patent" not in files_map:
         logger.warning("No patent files found in files_map for Silver layer.")
@@ -92,12 +95,14 @@ def silver_patents_resource(
         df = transform_patents(file_path)
         if df.is_empty():
             continue
-        yield from df.iter_rows(named=True)
+
+        for row in df.iter_rows(named=True):
+            yield SilverPatent(**row)
 
 
 @dlt.resource(
     name="silver_exclusivity",
-    write_disposition="merge",
+    write_disposition="replace",
     primary_key=[
         "application_number",
         "product_number",
@@ -106,7 +111,7 @@ def silver_patents_resource(
 )
 def silver_exclusivity_resource(
     files_map: dict[str, list[Path]],
-) -> Iterator[dict[str, Any]]:
+) -> Iterator[SilverExclusivity]:
     """
     DLT resource for Silver Exclusivity.
 
@@ -114,7 +119,7 @@ def silver_exclusivity_resource(
         files_map: Dictionary mapping roles to file paths.
 
     Yields:
-        Dictionary records for the Silver Exclusivity table.
+        SilverExclusivity records for the Silver Exclusivity table.
     """
     if "exclusivity" not in files_map:
         logger.warning("No exclusivity files found in files_map for Silver layer.")
@@ -125,4 +130,6 @@ def silver_exclusivity_resource(
         df = transform_exclusivity(file_path)
         if df.is_empty():
             continue
-        yield from df.iter_rows(named=True)
+
+        for row in df.iter_rows(named=True):
+            yield SilverExclusivity(**row)
