@@ -13,7 +13,7 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 
 class SilverProduct(BaseModel):
@@ -29,8 +29,8 @@ class SilverProduct(BaseModel):
     trade_name: str
     applicant_short: str
     strength: str
-    application_number: str = Field(description="6-digit padded application number")
-    product_number: str = Field(description="3-digit padded product number")
+    application_number: StrictStr = Field(description="6-digit padded application number")
+    product_number: StrictStr = Field(description="3-digit padded product number")
     te_code: Optional[str] = None
     approval_date: Optional[date] = None
     is_rld: bool
@@ -44,8 +44,8 @@ class SilverPatent(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    application_number: str = Field(description="6-digit padded application number")
-    product_number: str = Field(description="3-digit padded product number")
+    application_number: StrictStr = Field(description="6-digit padded application number")
+    product_number: StrictStr = Field(description="3-digit padded product number")
     patent_number: str
     patent_expiry_date: Optional[date] = None
     is_drug_substance: bool
@@ -62,7 +62,7 @@ class SilverExclusivity(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    application_number: str = Field(description="6-digit padded application number")
-    product_number: str = Field(description="3-digit padded product number")
+    application_number: StrictStr = Field(description="6-digit padded application number")
+    product_number: StrictStr = Field(description="3-digit padded product number")
     exclusivity_code: str
     exclusivity_end_date: Optional[date] = None
