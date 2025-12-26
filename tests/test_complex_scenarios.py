@@ -10,11 +10,9 @@
 
 """Complex integration scenarios and edge case tests."""
 
-from datetime import date
 from pathlib import Path
 
 import polars as pl
-import pytest
 
 from coreason_etl_fda_orange_book.gold.logic import create_gold_view
 from coreason_etl_fda_orange_book.silver.transform import (
