@@ -92,6 +92,9 @@ def transform_products(file_path: Path, marketing_status_hint: str = "RX") -> pl
     if df.is_empty():
         return df
 
+    # Global string cleaning for values
+    df = df.with_columns(pl.all().cast(pl.String).str.strip_chars())
+
     col_map = {c.lower(): c for c in df.columns}
     has_type_col = "type" in col_map
 
@@ -152,6 +155,9 @@ def transform_patents(file_path: Path) -> pl.DataFrame:
     if df.is_empty():
         return df
 
+    # Global string cleaning for values
+    df = df.with_columns(pl.all().cast(pl.String).str.strip_chars())
+
     col_map = {c.lower(): c for c in df.columns}
 
     def safe_col(name: str) -> pl.Expr:
@@ -202,6 +208,9 @@ def transform_exclusivity(file_path: Path) -> pl.DataFrame:
 
     if df.is_empty():
         return df
+
+    # Global string cleaning for values
+    df = df.with_columns(pl.all().cast(pl.String).str.strip_chars())
 
     col_map = {c.lower(): c for c in df.columns}
 

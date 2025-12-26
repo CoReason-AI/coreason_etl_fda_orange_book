@@ -20,7 +20,7 @@ from coreason_etl_fda_orange_book.exceptions import SourceConnectionError
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
-@pytest.fixture(name="fda_source")
+@pytest.fixture(name="fda_source")  # type: ignore
 def fda_source() -> FdaOrangeBookSource:
     """Fixture for FdaOrangeBookSource."""
     return FdaOrangeBookSource()

@@ -15,14 +15,14 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
+import requests  # type: ignore
 
 from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
-@pytest.fixture(name="fda_source")
+@pytest.fixture(name="fda_source")  # type: ignore
 def fda_source() -> FdaOrangeBookSource:
     """Fixture for FdaOrangeBookSource instance."""
     return FdaOrangeBookSource()
