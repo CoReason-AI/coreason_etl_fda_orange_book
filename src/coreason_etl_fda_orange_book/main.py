@@ -67,62 +67,68 @@ def run_pipeline(base_url: str, download_dir: Path) -> None:
 
     # Ensure directory exists
     download_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = download_dir / "orange_book.zip"
 
-    # Download
-    source.download_archive(zip_path)
+    try:
+        zip_path = download_dir / "orange_book.zip"
 
-    # Extract
-    extracted_dir = download_dir / "extracted"
-    extracted_dir.mkdir(exist_ok=True)
-    extracted_files = source.extract_archive(zip_path, extracted_dir)
+        # Download
+        source.download_archive(zip_path)
 
-    # Map Files
-    files_map = source.resolve_product_files(extracted_files)
+        # Extract
+        extracted_dir = download_dir / "extracted"
+        extracted_dir.mkdir(exist_ok=True)
+        extracted_files = source.extract_archive(zip_path, extracted_dir)
 
-    # 2. Bronze Layer
-    logger.info("Step 2: Bronze Layer Ingestion...")
-    pipeline = dlt.pipeline(
-        pipeline_name="fda_orange_book", destination="postgresql", dataset_name="bronze", progress="log"
-    )
+        # Map Files
+        files_map = source.resolve_product_files(extracted_files)
 
-    # We use 'run' with the resource.
-    # Note: In a real CLI, we assume 'destination' is configured via secrets.toml or env vars.
-    # If not configured, dlt might default or fail.
-    # For now, we assume the user has set up credentials.
+        # 2. Bronze Layer
+        logger.info("Step 2: Bronze Layer Ingestion...")
+        pipeline = dlt.pipeline(
+            pipeline_name="fda_orange_book", destination="postgresql", dataset_name="bronze", progress="log"
+        )
 
-    bronze_info = pipeline.run(bronze_resource(files_map, source))
-    logger.info(f"Bronze Load Info: {bronze_info}")
+        # We use 'run' with the resource.
+        # Note: In a real CLI, we assume 'destination' is configured via secrets.toml or env vars.
+        # If not configured, dlt might default or fail.
+        # For now, we assume the user has set up credentials.
 
-    # 3. Silver Layer
-    logger.info("Step 3: Silver Layer Ingestion...")
-    # Typically Silver is a separate schema or pipeline run.
-    # We can reuse the pipeline object but change dataset or keep same schema?
-    # Medallion often uses separate schemas: bronze, silver, gold.
+        bronze_info = pipeline.run(bronze_resource(files_map, source))
+        logger.info(f"Bronze Load Info: {bronze_info}")
 
-    pipeline_silver = dlt.pipeline(
-        pipeline_name="fda_orange_book", destination="postgresql", dataset_name="silver", progress="log"
-    )
+        # 3. Silver Layer
+        logger.info("Step 3: Silver Layer Ingestion...")
+        # Typically Silver is a separate schema or pipeline run.
+        # We can reuse the pipeline object but change dataset or keep same schema?
+        # Medallion often uses separate schemas: bronze, silver, gold.
 
-    silver_info = pipeline_silver.run(
-        [
-            silver_products_resource(files_map),
-            silver_patents_resource(files_map),
-            silver_exclusivity_resource(files_map),
-        ]
-    )
-    logger.info(f"Silver Load Info: {silver_info}")
+        pipeline_silver = dlt.pipeline(
+            pipeline_name="fda_orange_book", destination="postgresql", dataset_name="silver", progress="log"
+        )
 
-    # 4. Gold Layer
-    logger.info("Step 4: Gold Layer Ingestion...")
-    pipeline_gold = dlt.pipeline(
-        pipeline_name="fda_orange_book", destination="postgresql", dataset_name="gold", progress="log"
-    )
+        silver_info = pipeline_silver.run(
+            [
+                silver_products_resource(files_map),
+                silver_patents_resource(files_map),
+                silver_exclusivity_resource(files_map),
+            ]
+        )
+        logger.info(f"Silver Load Info: {silver_info}")
 
-    gold_info = pipeline_gold.run(gold_products_resource(files_map))
-    logger.info(f"Gold Load Info: {gold_info}")
+        # 4. Gold Layer
+        logger.info("Step 4: Gold Layer Ingestion...")
+        pipeline_gold = dlt.pipeline(
+            pipeline_name="fda_orange_book", destination="postgresql", dataset_name="gold", progress="log"
+        )
 
-    logger.info("Pipeline completed successfully.")
+        gold_info = pipeline_gold.run(gold_products_resource(files_map))
+        logger.info(f"Gold Load Info: {gold_info}")
+
+        logger.info("Pipeline completed successfully.")
+
+    finally:
+        logger.info(f"Cleaning up {download_dir}")
+        source.cleanup(download_dir)
 
 
 def main(args: list[str] | None = None) -> None:
