@@ -10,6 +10,8 @@
 
 """Tests for strict Pydantic validation in Silver models."""
 
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
@@ -25,7 +27,7 @@ class TestStrictValidation:
 
     def test_silver_product_strict_strings(self) -> None:
         """Test strict string enforcement for SilverProduct."""
-        valid_data = {
+        valid_data: dict[str, Any] = {
             "coreason_id": "uuid",
             "source_id": "src",
             "ingredient": "ing",
@@ -56,7 +58,7 @@ class TestStrictValidation:
 
     def test_silver_patent_strict_strings(self) -> None:
         """Test strict string enforcement for SilverPatent."""
-        valid_data = {
+        valid_data: dict[str, Any] = {
             "application_number": "123456",
             "product_number": "001",
             "patent_number": "PAT123",
@@ -74,7 +76,7 @@ class TestStrictValidation:
 
     def test_silver_exclusivity_strict_strings(self) -> None:
         """Test strict string enforcement for SilverExclusivity."""
-        valid_data = {
+        valid_data: dict[str, Any] = {
             "application_number": "123456",
             "product_number": "001",
             "exclusivity_code": "ODE",

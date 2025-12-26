@@ -11,7 +11,7 @@
 """Tests for pipeline cleanup logic."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from coreason_etl_fda_orange_book.main import run_pipeline
 
@@ -28,7 +28,7 @@ def test_pipeline_cleanup_on_success(tmp_path: Path) -> None:
         mock_instance.resolve_product_files.return_value = {}
 
         # Mock dlt pipeline run to avoid real DB connection
-        with patch("dlt.pipeline") as mock_pipeline:
+        with patch("dlt.pipeline"):
             run_pipeline("http://test.com", download_dir)
 
             # Verify cleanup called

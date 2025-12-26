@@ -12,7 +12,6 @@
 
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
 
 import dlt
 from loguru import logger
