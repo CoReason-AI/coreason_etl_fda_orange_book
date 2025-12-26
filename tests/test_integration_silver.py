@@ -25,7 +25,7 @@ from coreason_etl_fda_orange_book.silver.ingestion import (
 class TestSilverIntegration:
     """Integration tests for Silver layer DLT resources."""
 
-    @pytest.fixture(name="mock_files")
+    @pytest.fixture(name="mock_files")  # type: ignore
     def mock_files(self, tmp_path: Path) -> dict[str, list[Path]]:
         """Create mock files for testing."""
         # Products
