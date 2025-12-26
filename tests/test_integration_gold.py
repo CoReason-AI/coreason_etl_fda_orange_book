@@ -20,7 +20,7 @@ from coreason_etl_fda_orange_book.gold.ingestion import gold_products_resource
 class TestGoldIntegration:
     """Integration tests for Gold layer DLT resource."""
 
-    @pytest.fixture(name="mock_files")  # type: ignore
+    @pytest.fixture(name="mock_files")
     def mock_files(self, tmp_path: Path) -> dict[str, list[Path]]:
         """Create mock files for testing."""
         # Products

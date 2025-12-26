@@ -19,7 +19,7 @@ from coreason_etl_fda_orange_book.bronze.ingestion import yield_bronze_records
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
-@pytest.fixture(name="mock_source")  # type: ignore
+@pytest.fixture(name="mock_source")
 def mock_source() -> MagicMock:
     """Mock FdaOrangeBookSource."""
     source = MagicMock(spec=FdaOrangeBookSource)

@@ -21,7 +21,7 @@ from coreason_etl_fda_orange_book.gold.logic import create_gold_view
 class TestGoldLogic:
     """Tests for Gold layer transformations and joins."""
 
-    @pytest.fixture(name="silver_products")  # type: ignore
+    @pytest.fixture(name="silver_products")
     def silver_products(self) -> pl.DataFrame:
         return pl.DataFrame(
             {
@@ -39,7 +39,7 @@ class TestGoldLogic:
             }
         )
 
-    @pytest.fixture(name="silver_patents")  # type: ignore
+    @pytest.fixture(name="silver_patents")
     def silver_patents(self) -> pl.DataFrame:
         return pl.DataFrame(
             {
@@ -55,7 +55,7 @@ class TestGoldLogic:
             }
         )
 
-    @pytest.fixture(name="silver_exclusivity")  # type: ignore
+    @pytest.fixture(name="silver_exclusivity")
     def silver_exclusivity(self) -> pl.DataFrame:
         return pl.DataFrame(
             {
