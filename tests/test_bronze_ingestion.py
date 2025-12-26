@@ -11,11 +11,11 @@
 """Tests for Bronze layer ingestion logic."""
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from coreason_etl_fda_orange_book.bronze.ingestion import yield_bronze_records
+from coreason_etl_fda_orange_book.bronze.ingestion import bronze_resource, yield_bronze_records
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
 
 
@@ -97,15 +97,63 @@ def test_yield_bronze_records_read_failure(mock_source: MagicMock, tmp_path: Pat
     f1 = tmp_path / "unreadable.txt"
     f1.touch()
 
-    # We can't easily mock open() inside the function without patching it globally or passing an opener.
-    # But since we are passing a Path, we can rely on integration style or try to mock open.
-    # Let's mock builtins.open.
-
     files_map = {"test": [f1]}
-
-    from unittest.mock import patch
 
     with patch("builtins.open", side_effect=OSError("Read error")):
         records = list(yield_bronze_records(files_map, mock_source))
 
     assert len(records) == 0
+
+
+def test_yield_bronze_records_large_file(mock_source: MagicMock, tmp_path: Path) -> None:
+    """Test handling of a large file (simulated)."""
+    f1 = tmp_path / "large.txt"
+    # Create 1000 lines
+    content = "\n".join([f"line_{i}" for i in range(1000)])
+    f1.write_text(content, encoding="utf-8")
+
+    files_map = {"test": [f1]}
+    records = list(yield_bronze_records(files_map, mock_source))
+
+    assert len(records) == 1000
+    assert records[0]["raw_content"]["data"] == "line_0"
+    assert records[-1]["raw_content"]["data"] == "line_999"
+
+
+def test_yield_bronze_records_encoding_error(mock_source: MagicMock, tmp_path: Path) -> None:
+    """
+    Test handling of encoding errors.
+    We write bytes that are invalid in UTF-8.
+    Since configuration is ENCODING_ERRORS='replace', it should not crash.
+    """
+    f1 = tmp_path / "binary.txt"
+    # 0x80 is invalid in UTF-8
+    f1.write_bytes(b"invalid\x80byte")
+
+    files_map = {"test": [f1]}
+    records = list(yield_bronze_records(files_map, mock_source))
+
+    assert len(records) == 1
+    # Expect replacement character U+FFFD (often printed as ) or just passing through if permissive?
+    # Python 'replace' error handler inserts U+FFFD.
+    assert "invalid" in records[0]["raw_content"]["data"]
+    # Check that it didn't crash and yielded something
+    assert len(records[0]["raw_content"]["data"]) > 0
+
+
+def test_bronze_resource_wrapper(mock_source: MagicMock, tmp_path: Path) -> None:
+    """Test the dlt resource wrapper calls the generator."""
+    f1 = tmp_path / "test.txt"
+    f1.write_text("content", encoding="utf-8")
+
+    files_map = {"test": [f1]}
+
+    # Check it is a resource
+    assert callable(bronze_resource)
+
+    # Iterate
+    resource = bronze_resource(files_map, mock_source)
+    records = list(resource)
+
+    assert len(records) == 1
+    assert records[0]["raw_content"]["data"] == "content"
