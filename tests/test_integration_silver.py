@@ -62,20 +62,20 @@ class TestSilverIntegration:
         """Test Silver Products resource yields data."""
         data = list(silver_products_resource(mock_files))
         assert len(data) == 1
-        assert data[0].ingredient == "Budesonide"
-        assert data[0].coreason_id is not None
+        assert data[0]["ingredient"] == "Budesonide"
+        assert data[0]["coreason_id"] is not None
 
     def test_silver_patents_resource(self, mock_files: dict[str, list[Path]]) -> None:
         """Test Silver Patents resource yields data."""
         data = list(silver_patents_resource(mock_files))
         assert len(data) == 1
-        assert data[0].patent_number == "7654321"
+        assert data[0]["patent_number"] == "7654321"
 
     def test_silver_exclusivity_resource(self, mock_files: dict[str, list[Path]]) -> None:
         """Test Silver Exclusivity resource yields data."""
         data = list(silver_exclusivity_resource(mock_files))
         assert len(data) == 1
-        assert data[0].exclusivity_code == "ODE"
+        assert data[0]["exclusivity_code"] == "ODE"
 
     def test_pipeline_run_mock(self, mock_files: dict[str, list[Path]]) -> None:
         """Test running the DLT pipeline with Silver resources."""

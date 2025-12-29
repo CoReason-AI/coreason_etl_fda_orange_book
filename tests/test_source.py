@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
+from curl_cffi import requests
 
 from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
@@ -48,13 +48,23 @@ def test_download_archive_success(fda_source: FdaOrangeBookSource, tmp_path: Pat
     mock_response = MagicMock()
     mock_response.iter_content.return_value = [b"chunk1", b"chunk2"]
     mock_response.raise_for_status.return_value = None
+    mock_response.status_code = 200
+    mock_response.url = "http://test.com/zip"
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        # Need to support context manager
-        mock_get.return_value.__enter__.return_value = mock_response
+    with patch("curl_cffi.requests.get", return_value=mock_response) as mock_get:
         fda_source.download_archive(target_file)
 
-        mock_get.assert_called_with(fda_source.base_url, stream=True, timeout=60)
+        mock_get.assert_called_with(
+            fda_source.base_url,
+            impersonate="chrome120",
+            headers={
+                "Referer": "https://www.fda.gov/drugs/drug-approvals-and-databases/orange-book-data-files",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+            stream=True,
+            timeout=300,
+        )
         assert target_file.exists()
         assert target_file.read_bytes() == b"chunk1chunk2"
 
@@ -63,8 +73,60 @@ def test_download_archive_failure(fda_source: FdaOrangeBookSource, tmp_path: Pat
     """Test download failure."""
     target_file = tmp_path / "test.zip"
 
-    with patch("requests.get", side_effect=requests.RequestException("Boom")):
+    with patch("curl_cffi.requests.get", side_effect=requests.RequestsError("Boom")):
         with pytest.raises(SourceConnectionError, match="Failed to download"):
+            fda_source.download_archive(target_file)
+
+
+def test_download_abuse_detection(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test handling of abuse detection trigger."""
+    target_file = tmp_path / "test.zip"
+
+    mock_response = MagicMock()
+    mock_response.url = "https://www.fda.gov/abuse/detection"
+    mock_response.status_code = 200
+
+    with patch("curl_cffi.requests.get", return_value=mock_response):
+        with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
+            fda_source.download_archive(target_file)
+
+
+def test_download_apology_redirect(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test handling of apology redirect."""
+    target_file = tmp_path / "test.zip"
+
+    mock_response = MagicMock()
+    mock_response.url = "https://www.fda.gov/apology"
+    mock_response.status_code = 200
+
+    with patch("curl_cffi.requests.get", return_value=mock_response):
+        with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
+            fda_source.download_archive(target_file)
+
+
+def test_download_404_not_found(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test handling of 404 error."""
+    target_file = tmp_path / "test.zip"
+
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    mock_response.url = fda_source.base_url
+
+    with patch("curl_cffi.requests.get", return_value=mock_response):
+        with pytest.raises(SourceSchemaError, match="Download link not found"):
+            fda_source.download_archive(target_file)
+
+
+def test_download_403_forbidden(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
+    """Test handling of 403 error."""
+    target_file = tmp_path / "test.zip"
+
+    mock_response = MagicMock()
+    mock_response.status_code = 403
+    mock_response.url = fda_source.base_url
+
+    with patch("curl_cffi.requests.get", return_value=mock_response):
+        with pytest.raises(SourceConnectionError, match="Access forbidden"):
             fda_source.download_archive(target_file)
 
 
@@ -75,9 +137,10 @@ def test_download_empty_content(fda_source: FdaOrangeBookSource, tmp_path: Path)
     mock_response = MagicMock()
     mock_response.iter_content.return_value = []
     mock_response.raise_for_status.return_value = None
+    mock_response.status_code = 200
+    mock_response.url = "http://test.com/zip"
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        mock_get.return_value.__enter__.return_value = mock_response
+    with patch("curl_cffi.requests.get", return_value=mock_response):
         fda_source.download_archive(target_file)
 
     assert target_file.exists()
@@ -85,23 +148,21 @@ def test_download_empty_content(fda_source: FdaOrangeBookSource, tmp_path: Path)
 
 
 def test_download_destination_parent_missing(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
-    """Test behavior when destination directory does not exist."""
-    # current implementation just opens file, so it should raise FileNotFoundError (OSError)
-    # The current implementation wraps RequestException but not OSError from file opening.
-    # Ideally it should probably handle it or let it bubble up as a system error.
-    # Let's verify it raises whatever open() raises, or we might want to improve the implementation later.
-    # For now, let's just see what happens.
-
+    """Test behavior when destination directory does not exist (it should be created)."""
+    # NOTE: The new implementation calls mkdir(parents=True, exist_ok=True)
+    # So this test should pass successfully instead of raising FileNotFoundError as before.
     target_file = tmp_path / "missing_dir" / "test.zip"
 
     mock_response = MagicMock()
     mock_response.iter_content.return_value = [b"data"]
     mock_response.raise_for_status.return_value = None
+    mock_response.status_code = 200
+    mock_response.url = "http://test.com/zip"
 
-    with patch("requests.get", return_value=mock_response) as mock_get:
-        mock_get.return_value.__enter__.return_value = mock_response
-        with pytest.raises(FileNotFoundError):
-            fda_source.download_archive(target_file)
+    with patch("curl_cffi.requests.get", return_value=mock_response):
+        fda_source.download_archive(target_file)
+
+    assert target_file.exists()
 
 
 def test_extract_archive_success(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:

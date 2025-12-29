@@ -28,7 +28,12 @@ from coreason_etl_fda_orange_book.silver.transform import (
 )
 
 
-@dlt.resource(name="silver_products", write_disposition="replace", primary_key="coreason_id")
+@dlt.resource(
+    name="silver_products",
+    write_disposition="replace",
+    primary_key="coreason_id",
+    columns=SilverProduct,
+)
 def silver_products_resource(
     files_map: dict[str, list[Path]],
 ) -> Iterator[SilverProduct]:
@@ -42,13 +47,11 @@ def silver_products_resource(
         SilverProduct records for the Silver Products table.
     """
     if "products" not in files_map:
-        logger.warning("No product files found in files_map for Silver layer.")
+        logger.warning("No product files found for Silver layer.")
         return
 
     for file_path in files_map["products"]:
         logger.info(f"Processing {file_path} for Silver Products")
-        # Determine marketing status hint from filename if needed
-        # e.g., if file is "rx.txt", hint="RX"
         filename = file_path.name.lower()
         hint = "RX"
         if "otc" in filename:
@@ -67,12 +70,8 @@ def silver_products_resource(
 @dlt.resource(
     name="silver_patents",
     write_disposition="replace",
-    primary_key=[
-        "application_number",
-        "product_number",
-        "patent_number",
-        "patent_use_code",
-    ],
+    primary_key=["application_number", "product_number", "patent_number"],
+    columns=SilverPatent,
 )
 def silver_patents_resource(
     files_map: dict[str, list[Path]],
@@ -87,7 +86,7 @@ def silver_patents_resource(
         SilverPatent records for the Silver Patents table.
     """
     if "patent" not in files_map:
-        logger.warning("No patent files found in files_map for Silver layer.")
+        logger.warning("No patent files found for Silver layer.")
         return
 
     for file_path in files_map["patent"]:
@@ -103,11 +102,8 @@ def silver_patents_resource(
 @dlt.resource(
     name="silver_exclusivity",
     write_disposition="replace",
-    primary_key=[
-        "application_number",
-        "product_number",
-        "exclusivity_code",
-    ],
+    primary_key=["application_number", "product_number", "exclusivity_code"],
+    columns=SilverExclusivity,
 )
 def silver_exclusivity_resource(
     files_map: dict[str, list[Path]],
@@ -122,7 +118,7 @@ def silver_exclusivity_resource(
         SilverExclusivity records for the Silver Exclusivity table.
     """
     if "exclusivity" not in files_map:
-        logger.warning("No exclusivity files found in files_map for Silver layer.")
+        logger.warning("No exclusivity files found for Silver layer.")
         return
 
     for file_path in files_map["exclusivity"]:
