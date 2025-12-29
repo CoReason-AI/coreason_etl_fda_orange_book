@@ -64,8 +64,10 @@ def test_write_permission_error(tmp_path: Path) -> None:
     mock_response.iter_content = lambda chunk_size: [b"chunk"]
     mock_response.__enter__.return_value = mock_response
     mock_response.__exit__.return_value = None
+    mock_response.status_code = 200
+    mock_response.url = "http://test.com"
 
-    with patch("requests.get", return_value=mock_response):
+    with patch("curl_cffi.requests.get", return_value=mock_response):
         # Patch open to fail when writing
         with patch("builtins.open", side_effect=PermissionError("Write permission denied")):
             with pytest.raises(PermissionError):
@@ -116,7 +118,10 @@ def test_disk_full(tmp_path: Path) -> None:
     mock_file.__enter__.return_value = mock_file
     mock_file.__exit__.return_value = None
 
-    with patch("requests.get", return_value=mock_response):
+    mock_response.status_code = 200
+    mock_response.url = "http://test.com"
+
+    with patch("curl_cffi.requests.get", return_value=mock_response):
         with patch("builtins.open", return_value=mock_file):
             with pytest.raises(OSError) as excinfo:
                 source.download_archive(dest)

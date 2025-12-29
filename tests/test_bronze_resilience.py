@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
+from curl_cffi import requests
 
 from coreason_etl_fda_orange_book.bronze.ingestion import yield_bronze_records
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError
@@ -71,12 +71,19 @@ def test_download_partial_failure(tmp_path: Path) -> None:
     # Simulate partial content: yields one chunk, then raises ConnectionError
     def failing_iter_content(chunk_size: int = 8192) -> Iterator[bytes]:
         yield b"some_data"
-        raise requests.ConnectionError("Connection drop")
+        raise requests.RequestsError("Connection drop")
 
     mock_response.iter_content = failing_iter_content
 
-    with patch("requests.get", return_value=mock_response):
+    with patch("curl_cffi.requests.get", return_value=mock_response):
         # We assume the mocked requests.get is used as a context manager in the source code
+        # In curl_cffi, requests.get doesn't return a context manager directly unless stream=True usage implies it?
+        # Actually in standard requests, response object is context manager.
+        # curl_cffi response object usage as context manager is similar?
+        # The source code does: with requests.get(...) as response:
+        # So yes.
+        # But wait, we patch "curl_cffi.requests.get" which returns the mock_response.
+        # So mock_response needs to be a context manager.
         mock_response.__enter__.return_value = mock_response
         mock_response.__exit__.return_value = None
 
