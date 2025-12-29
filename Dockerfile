@@ -21,7 +21,8 @@ RUN python -m build --wheel --outdir /wheels
 FROM python:3.12-slim AS runtime
 
 # Install System Dependencies
-RUN apt-get update && apt-get install -y \
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     postgresql-client \
     ca-certificates \
@@ -43,6 +44,6 @@ WORKDIR /home/appuser/app
 COPY --from=builder /wheels /wheels
 
 # Install the application wheel + curl-cffi
-RUN pip install --no-cache-dir /wheels/*.whl pytest "dlt[postgres]" curl-cffi
+RUN pip install --no-cache-dir /wheels/*.whl pytest==8.2.2 "dlt[postgres]==1.20.0" curl-cffi==0.14.0
 
 CMD ["python", "-m", "coreason_etl_fda_orange_book.main"]
