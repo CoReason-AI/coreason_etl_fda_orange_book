@@ -49,7 +49,8 @@ This project uses **Ruff** for Python linting/formatting, **Mypy** for typing, a
   * Run checks with: poetry run mypy .
   * Avoid Any wherever possible.
 * **Logging:** Use loguru instead of the standard logging module.
-  * *Good:* from loguru import logger -> logger.info("...")
+  * *Good:* `from coreason_etl_fda_orange_book.utils.logger import logger` -> `logger.info("...")`
+  * *Architecture:* Centralized configuration in `src/coreason_etl_fda_orange_book/utils/logger.py` handles dual output (Console/JSON File).
 * **Licensing:** Every .py file must start with the standard license header.
 
 ### **Legal & Intellectual Property**
@@ -124,6 +125,26 @@ Adhere to 12-Factor App principles. Use these standard variable names:
 * Documentation is built with **MkDocs Material**.
 * Update docs/index.md or add new markdown files in docs/ when adding features.
 * Ensure all public functions have docstrings (Google or NumPy style).
+
+### **Logging & Observability**
+
+This project uses **loguru** for all logging needs. Do not use the standard `logging` module or `print()` statements.
+
+* **Standard Import:**
+  ```python
+  from coreason_etl_fda_orange_book.utils.logger import logger
+
+  # Inside an Agent or Class
+  logger.info("Agent started task")
+  try:
+      ...
+  except Exception:
+      logger.exception("Agent failed")
+  ```
+
+* **Outputs:**
+  1. **Console (Stderr):** Human-readable format.
+  2. **File (logs/app.log):** JSON format for ingestion, rotated every 500 MB or 1 day, retained for 10 days.
 
 ## **6. Workflow & Debugging Protocol**
 
