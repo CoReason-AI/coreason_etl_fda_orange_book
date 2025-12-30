@@ -8,47 +8,35 @@
 #
 # Source Code: https://github.com/CoReason-AI/coreason_etl_fda_orange_book
 
-"""Ingestion logic for the Silver layer."""
+"""Ingestion logic for Silver layer."""
 
 from collections.abc import Iterator
 from pathlib import Path
 
 import dlt
+from loguru import logger
 
-from coreason_etl_fda_orange_book.silver.models import (
-    SilverExclusivity,
-    SilverPatent,
-    SilverProduct,
-)
-from coreason_etl_fda_orange_book.silver.transform import (
-    transform_exclusivity,
-    transform_patents,
-    transform_products,
-)
-from coreason_etl_fda_orange_book.utils.logger import logger
+from coreason_etl_fda_orange_book.silver.models import SilverExclusivity, SilverPatent, SilverProduct
+from coreason_etl_fda_orange_book.silver.transform import transform_exclusivity, transform_patents, transform_products
 
 
-@dlt.resource(name="silver_products", write_disposition="replace", primary_key="coreason_id")
-def silver_products_resource(
-    files_map: dict[str, list[Path]],
-) -> Iterator[SilverProduct]:
+@dlt.resource(name="silver_products", write_disposition="replace", primary_key="coreason_id", columns=SilverProduct)
+def silver_products_resource(files_map: dict[str, list[Path]]) -> Iterator[SilverProduct]:
     """
-    DLT resource for Silver Products.
+    DLT resource for Silver products.
 
     Args:
-        files_map: Dictionary mapping roles to file paths.
+        files_map: A dictionary mapping logical file keys to lists of file paths.
 
     Yields:
-        SilverProduct records for the Silver Products table.
+        SilverProduct: Validated Silver product records.
     """
     if "products" not in files_map:
-        logger.warning("No product files found in files_map for Silver layer.")
+        logger.warning("No product files found for Silver layer.")
         return
 
     for file_path in files_map["products"]:
         logger.info(f"Processing {file_path} for Silver Products")
-        # Determine marketing status hint from filename if needed
-        # e.g., if file is "rx.txt", hint="RX"
         filename = file_path.name.lower()
         hint = "RX"
         if "otc" in filename:
@@ -67,27 +55,21 @@ def silver_products_resource(
 @dlt.resource(
     name="silver_patents",
     write_disposition="replace",
-    primary_key=[
-        "application_number",
-        "product_number",
-        "patent_number",
-        "patent_use_code",
-    ],
+    primary_key=["application_number", "product_number", "patent_number"],
+    columns=SilverPatent,
 )
-def silver_patents_resource(
-    files_map: dict[str, list[Path]],
-) -> Iterator[SilverPatent]:
+def silver_patents_resource(files_map: dict[str, list[Path]]) -> Iterator[SilverPatent]:
     """
-    DLT resource for Silver Patents.
+    DLT resource for Silver patents.
 
     Args:
-        files_map: Dictionary mapping roles to file paths.
+        files_map: A dictionary mapping logical file keys to lists of file paths.
 
     Yields:
-        SilverPatent records for the Silver Patents table.
+        SilverPatent: Validated Silver patent records.
     """
     if "patent" not in files_map:
-        logger.warning("No patent files found in files_map for Silver layer.")
+        logger.warning("No patent files found for Silver layer.")
         return
 
     for file_path in files_map["patent"]:
@@ -103,26 +85,21 @@ def silver_patents_resource(
 @dlt.resource(
     name="silver_exclusivity",
     write_disposition="replace",
-    primary_key=[
-        "application_number",
-        "product_number",
-        "exclusivity_code",
-    ],
+    primary_key=["application_number", "product_number", "exclusivity_code"],
+    columns=SilverExclusivity,
 )
-def silver_exclusivity_resource(
-    files_map: dict[str, list[Path]],
-) -> Iterator[SilverExclusivity]:
+def silver_exclusivity_resource(files_map: dict[str, list[Path]]) -> Iterator[SilverExclusivity]:
     """
-    DLT resource for Silver Exclusivity.
+    DLT resource for Silver exclusivity.
 
     Args:
-        files_map: Dictionary mapping roles to file paths.
+        files_map: A dictionary mapping logical file keys to lists of file paths.
 
     Yields:
-        SilverExclusivity records for the Silver Exclusivity table.
+        SilverExclusivity: Validated Silver exclusivity records.
     """
     if "exclusivity" not in files_map:
-        logger.warning("No exclusivity files found in files_map for Silver layer.")
+        logger.warning("No exclusivity files found for Silver layer.")
         return
 
     for file_path in files_map["exclusivity"]:
