@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Optional
 
 import polars as pl
-from loguru import logger
 
 from coreason_etl_fda_orange_book.config import FdaConfig
+from coreason_etl_fda_orange_book.utils.logger import logger
 
 
 def _generate_coreason_id(source_id: str) -> str:
