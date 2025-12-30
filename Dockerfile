@@ -56,7 +56,7 @@ COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl pytest==8.2.2 "dlt[postgres]==1.20.0" "curl-cffi==0.14.0"
 
 # Set permissions
-chown -R appuser:appuser /home/appuser/app
+RUN chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 

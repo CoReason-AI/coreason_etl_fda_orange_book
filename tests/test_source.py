@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 # UPDATED: Import requests from curl_cffi
 from curl_cffi import requests
 
@@ -66,7 +67,7 @@ def test_download_archive_success(fda_source: FdaOrangeBookSource, tmp_path: Pat
                 "Accept-Language": "en-US,en;q=0.9",
             },
             stream=True,
-            timeout=300
+            timeout=300,
         )
         assert target_file.exists()
         assert target_file.read_bytes() == b"chunk1chunk2"
@@ -80,6 +81,7 @@ def test_download_archive_failure(fda_source: FdaOrangeBookSource, tmp_path: Pat
         with pytest.raises(SourceConnectionError, match="Failed to download"):
             fda_source.download_archive(target_file)
 
+
 def test_download_archive_abuse_detection(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test download failure due to abuse detection (404 + url)."""
     target_file = tmp_path / "test.zip"
@@ -89,9 +91,10 @@ def test_download_archive_abuse_detection(fda_source: FdaOrangeBookSource, tmp_p
     mock_response.url = "https://www.fda.gov/abuse/detection"
 
     with patch("curl_cffi.requests.get", return_value=mock_response) as mock_get:
-         mock_get.return_value.__enter__.return_value = mock_response
-         with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
+        mock_get.return_value.__enter__.return_value = mock_response
+        with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
             fda_source.download_archive(target_file)
+
 
 def test_download_archive_abuse_detection_200(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test download failure due to abuse detection (200 + url)."""
@@ -102,22 +105,24 @@ def test_download_archive_abuse_detection_200(fda_source: FdaOrangeBookSource, t
     mock_response.url = "https://www.fda.gov/abuse/detection"
 
     with patch("curl_cffi.requests.get", return_value=mock_response) as mock_get:
-         mock_get.return_value.__enter__.return_value = mock_response
-         with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
+        mock_get.return_value.__enter__.return_value = mock_response
+        with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
             fda_source.download_archive(target_file)
+
 
 def test_download_archive_apology(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test download failure due to apology page."""
     target_file = tmp_path / "test.zip"
 
     mock_response = MagicMock()
-    mock_response.status_code = 200 # Apology page might return 200 but redirect
+    mock_response.status_code = 200  # Apology page might return 200 but redirect
     mock_response.url = "https://www.fda.gov/apology"
 
     with patch("curl_cffi.requests.get", return_value=mock_response) as mock_get:
-         mock_get.return_value.__enter__.return_value = mock_response
-         with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
+        mock_get.return_value.__enter__.return_value = mock_response
+        with pytest.raises(SourceConnectionError, match="Abuse Detection Triggered"):
             fda_source.download_archive(target_file)
+
 
 def test_download_archive_forbidden(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test download failure due to 403 Forbidden."""
@@ -128,8 +133,8 @@ def test_download_archive_forbidden(fda_source: FdaOrangeBookSource, tmp_path: P
     mock_response.url = "http://test.com/zip"
 
     with patch("curl_cffi.requests.get", return_value=mock_response) as mock_get:
-         mock_get.return_value.__enter__.return_value = mock_response
-         with pytest.raises(SourceConnectionError, match="Access forbidden"):
+        mock_get.return_value.__enter__.return_value = mock_response
+        with pytest.raises(SourceConnectionError, match="Access forbidden"):
             fda_source.download_archive(target_file)
 
 
@@ -243,6 +248,7 @@ def test_extract_archive_zip_slip_exception(fda_source: FdaOrangeBookSource, tmp
         # Should be empty because it catches the error and skips
         assert len(files) == 0
 
+
 def test_extract_archive_unsafe_path_mock(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test skipping of unsafe file paths using full mocking."""
     zip_path = tmp_path / "unsafe.zip"
@@ -299,6 +305,7 @@ def test_extract_archive_value_error_mock(fda_source: FdaOrangeBookSource, tmp_p
         files = fda_source.extract_archive(zip_path, mock_dest)
 
         assert len(files) == 0
+
 
 def test_extract_nested_structure(fda_source: FdaOrangeBookSource, tmp_path: Path) -> None:
     """Test extraction of nested directories."""

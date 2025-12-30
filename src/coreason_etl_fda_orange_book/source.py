@@ -63,7 +63,7 @@ class FdaOrangeBookSource:
                     "Accept-Language": "en-US,en;q=0.9",
                 },
                 stream=True,
-                timeout=300
+                timeout=300,
             )
 
             # Detect Abuse/Apology Redirects
