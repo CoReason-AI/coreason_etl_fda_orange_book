@@ -51,12 +51,10 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /home/appuser -m appuser
 
 WORKDIR /home/appuser/app
 
-# Install Application + curl-cffi
+# Install Application + curl-cffi and set permissions
 COPY --from=builder /wheels /wheels
-RUN pip install --no-cache-dir /wheels/*.whl pytest==8.2.2 "dlt[postgres]==1.20.0" "curl-cffi==0.14.0"
-
-# Set permissions
-RUN chown -R appuser:appuser /home/appuser/app
+RUN pip install --no-cache-dir /wheels/*.whl pytest==8.2.2 "dlt[postgres]==1.20.0" "curl-cffi==0.14.0" && \
+    chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 
