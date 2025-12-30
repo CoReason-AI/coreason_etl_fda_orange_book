@@ -11,7 +11,8 @@
 """Business logic for the Gold layer."""
 
 import polars as pl
-from loguru import logger
+
+from coreason_etl_fda_orange_book.utils.logger import logger
 
 
 def create_gold_view(

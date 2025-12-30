@@ -16,7 +16,6 @@ import sys
 from pathlib import Path
 
 import dlt
-from loguru import logger
 
 from coreason_etl_fda_orange_book.bronze.ingestion import bronze_resource
 from coreason_etl_fda_orange_book.config import FdaConfig
@@ -27,6 +26,7 @@ from coreason_etl_fda_orange_book.silver.ingestion import (
     silver_products_resource,
 )
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
+from coreason_etl_fda_orange_book.utils.logger import logger
 
 
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
@@ -47,12 +47,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def setup_logging() -> None:
-    """Configure logging based on environment variables."""
-    logger.remove()
-    logger.add(sys.stderr, level=os.getenv("LOG_LEVEL", "INFO"))
-
-
+@logger.catch
 def run_pipeline(base_url: str, download_dir: Path) -> None:
     """
     Run the full Bronze -> Silver -> Gold pipeline.
@@ -133,7 +128,6 @@ def run_pipeline(base_url: str, download_dir: Path) -> None:
 
 def main(args: list[str] | None = None) -> None:
     """Main entry point for the pipeline."""
-    setup_logging()
     parsed_args = parse_args(args)
 
     logger.info("Starting FDA Orange Book ETL Pipeline")

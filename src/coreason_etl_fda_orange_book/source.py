@@ -17,10 +17,10 @@ from pathlib import Path
 from typing import Final
 
 import requests
-from loguru import logger
 
 from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
+from coreason_etl_fda_orange_book.utils.logger import logger
 
 
 class FdaOrangeBookSource:
@@ -36,6 +36,7 @@ class FdaOrangeBookSource:
             base_url: The URL to download the ZIP from. Defaults to FdaConfig.DEFAULT_BASE_URL.
         """
         self.base_url = base_url
+        self.logger = logger.bind(agent="FdaOrangeBookSource")
 
     def download_archive(self, destination: Path) -> None:
         """
@@ -47,22 +48,22 @@ class FdaOrangeBookSource:
         Raises:
             SourceConnectionError: If the download fails.
         """
-        logger.info(f"Downloading archive from {self.base_url} to {destination}")
+        self.logger.info(f"Downloading archive from {self.base_url} to {destination}")
         try:
             with requests.get(self.base_url, stream=True, timeout=60) as response:
                 response.raise_for_status()
                 with open(destination, "wb") as f:
                     for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
                         f.write(chunk)
-            logger.info("Download completed successfully.")
+            self.logger.info("Download completed successfully.")
         except requests.HTTPError as e:
             if e.response.status_code == 404:
-                logger.error(f"Download link not found (404): {self.base_url}")
+                self.logger.error(f"Download link not found (404): {self.base_url}")
                 raise SourceSchemaError(f"Download link not found: {self.base_url}") from e
-            logger.error(f"HTTP error during download: {e}")
+            self.logger.error(f"HTTP error during download: {e}")
             raise SourceConnectionError(f"HTTP error downloading from {self.base_url}: {e}") from e
         except requests.RequestException as e:
-            logger.error(f"Failed to download archive: {e}")
+            self.logger.error(f"Failed to download archive: {e}")
             raise SourceConnectionError(f"Failed to download from {self.base_url}: {e}") from e
 
     def extract_archive(self, zip_path: Path, destination_dir: Path) -> list[Path]:
@@ -79,7 +80,7 @@ class FdaOrangeBookSource:
         Raises:
             SourceSchemaError: If the file is not a valid ZIP archive or contains unsafe paths.
         """
-        logger.info(f"Extracting {zip_path} to {destination_dir}")
+        self.logger.info(f"Extracting {zip_path} to {destination_dir}")
 
         if not zip_path.exists():
             raise SourceConnectionError(f"ZIP file not found at {zip_path}")
@@ -105,21 +106,21 @@ class FdaOrangeBookSource:
                         # but standard practice is realpath check.
 
                         if not resolved_path.is_relative_to(destination_dir.resolve()):
-                            logger.warning(f"Skipping unsafe file path in zip: {member.filename}")
+                            self.logger.warning(f"Skipping unsafe file path in zip: {member.filename}")
                             continue
 
                     except (ValueError, RuntimeError):
                         # is_relative_to can raise ValueError if on different drives (Windows)
-                        logger.warning(f"Skipping invalid file path in zip: {member.filename}")
+                        self.logger.warning(f"Skipping invalid file path in zip: {member.filename}")
                         continue
 
                     zip_ref.extract(member, destination_dir)
                     extracted_files.append(target_path)
 
-            logger.info(f"Extracted {len(extracted_files)} files.")
+            self.logger.info(f"Extracted {len(extracted_files)} files.")
             return extracted_files
         except zipfile.BadZipFile as e:
-            logger.error(f"Invalid ZIP file: {e}")
+            self.logger.error(f"Invalid ZIP file: {e}")
             raise SourceSchemaError(f"File at {zip_path} is not a valid ZIP archive.") from e
 
     def calculate_file_hash(self, file_path: Path) -> str:
@@ -135,7 +136,7 @@ class FdaOrangeBookSource:
         Raises:
             SourceConnectionError: If the file cannot be read.
         """
-        logger.debug(f"Calculating hash for {file_path}")
+        self.logger.debug(f"Calculating hash for {file_path}")
         if not file_path.exists():
             raise SourceConnectionError(f"File not found for hashing: {file_path}")
 
@@ -145,10 +146,10 @@ class FdaOrangeBookSource:
                 for chunk in iter(lambda: f.read(self.CHUNK_SIZE), b""):
                     hash_md5.update(chunk)
             digest = hash_md5.hexdigest()
-            logger.debug(f"Hash for {file_path.name}: {digest}")
+            self.logger.debug(f"Hash for {file_path.name}: {digest}")
             return digest
         except OSError as e:
-            logger.error(f"Failed to calculate hash for {file_path}: {e}")
+            self.logger.error(f"Failed to calculate hash for {file_path}: {e}")
             raise SourceConnectionError(f"Failed to calculate hash for {file_path}: {e}") from e
 
     def resolve_product_files(self, extracted_files: list[Path]) -> dict[str, list[Path]]:
@@ -188,20 +189,20 @@ class FdaOrangeBookSource:
             if found_components:
                 mapping["products"].extend(found_components)
             else:
-                logger.error("No valid product files found (products.txt or rx/otc/disc.txt)")
+                self.logger.error("No valid product files found (products.txt or rx/otc/disc.txt)")
                 raise SourceSchemaError("Missing required product files (products.txt or rx.txt/otc.txt/disc.txt)")
 
         # 2. Resolve Patent
         if FdaConfig.FILE_PATENTS.lower() in name_map:
             mapping["patent"].append(name_map[FdaConfig.FILE_PATENTS.lower()])
         else:
-            logger.warning("patent.txt not found in extracted files.")
+            self.logger.warning("patent.txt not found in extracted files.")
 
         # 3. Resolve Exclusivity
         if FdaConfig.FILE_EXCLUSIVITY.lower() in name_map:
             mapping["exclusivity"].append(name_map[FdaConfig.FILE_EXCLUSIVITY.lower()])
         else:
-            logger.warning("exclusivity.txt not found in extracted files.")
+            self.logger.warning("exclusivity.txt not found in extracted files.")
 
         return mapping
 
@@ -220,6 +221,6 @@ class FdaOrangeBookSource:
                 path.unlink()
             elif path.is_dir():
                 shutil.rmtree(path)
-            logger.debug(f"Cleaned up {path}")
+            self.logger.debug(f"Cleaned up {path}")
         except OSError as e:
-            logger.warning(f"Failed to cleanup {path}: {e}")
+            self.logger.warning(f"Failed to cleanup {path}: {e}")

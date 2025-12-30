@@ -14,7 +14,6 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import dlt
-from loguru import logger
 
 from coreason_etl_fda_orange_book.silver.models import (
     SilverExclusivity,
@@ -26,6 +25,7 @@ from coreason_etl_fda_orange_book.silver.transform import (
     transform_patents,
     transform_products,
 )
+from coreason_etl_fda_orange_book.utils.logger import logger
 
 
 @dlt.resource(name="silver_products", write_disposition="replace", primary_key="coreason_id")
