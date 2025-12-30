@@ -20,6 +20,16 @@ RUN python -m build --wheel --outdir /wheels
 # Stage 2: Runtime
 FROM python:3.12-slim AS runtime
 
+# Install System Dependencies
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    postgresql-client \
+    ca-certificates \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user
 RUN useradd --create-home --shell /bin/bash appuser
 USER appuser
@@ -33,5 +43,7 @@ WORKDIR /home/appuser/app
 # Copy the wheel from the builder stage
 COPY --from=builder /wheels /wheels
 
-# Install the application wheel
-RUN pip install --no-cache-dir /wheels/*.whl
+# Install the application wheel + curl-cffi
+RUN pip install --no-cache-dir /wheels/*.whl pytest==8.2.2 "dlt[postgres]==1.20.0" curl-cffi==0.14.0
+
+CMD ["python", "-m", "coreason_etl_fda_orange_book.main"]

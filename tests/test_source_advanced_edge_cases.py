@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
+from curl_cffi import requests
 
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
@@ -34,7 +34,7 @@ class TestSourceNetworkResilience:
         target = tmp_path / "timeout.zip"
 
         # requests.Timeout is a subclass of RequestException
-        with patch("requests.get", side_effect=requests.Timeout("Connection timed out")):
+        with patch("curl_cffi.requests.get", side_effect=requests.RequestsError("Connection timed out")):
             with pytest.raises(SourceConnectionError, match="Failed to download"):
                 source.download_archive(target)
 
@@ -43,7 +43,7 @@ class TestSourceNetworkResilience:
         target = tmp_path / "dns.zip"
 
         # requests.ConnectionError is raised for DNS/Refused errors
-        with patch("requests.get", side_effect=requests.ConnectionError("Name or service not known")):
+        with patch("curl_cffi.requests.get", side_effect=requests.RequestsError("Name or service not known")):
             with pytest.raises(SourceConnectionError, match="Failed to download"):
                 source.download_archive(target)
 
@@ -54,12 +54,12 @@ class TestSourceNetworkResilience:
         mock_resp = MagicMock()
         mock_resp.status_code = 429
         # raise_for_status raises HTTPError
-        error = requests.HTTPError("429 Client Error: Too Many Requests", response=mock_resp)
+        error = requests.RequestsError("429 Client Error: Too Many Requests", response=mock_resp)
 
-        with patch("requests.get", side_effect=error):
+        with patch("curl_cffi.requests.get", side_effect=error):
             # Currently the code catches generic HTTPError/RequestException
             # It should wrap it in SourceConnectionError
-            with pytest.raises(SourceConnectionError, match="HTTP error downloading"):
+            with pytest.raises(SourceConnectionError, match="Failed to download"):
                 source.download_archive(target)
 
     def test_download_redirect_302(self, source: FdaOrangeBookSource, tmp_path: Path) -> None:
@@ -74,7 +74,7 @@ class TestSourceNetworkResilience:
         mock_resp.__enter__.return_value = mock_resp
         mock_resp.__exit__.return_value = None
 
-        with patch("requests.get", return_value=mock_resp):
+        with patch("curl_cffi.requests.get", return_value=mock_resp):
             source.download_archive(target)
 
             # Verify file content
