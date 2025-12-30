@@ -80,7 +80,8 @@ class TestCoverageGaps:
 
         # Just run to hit the branches
         data = list(silver_products_resource(files_map))
-        statuses = {row.marketing_status for row in data}
+        # DLT resource yields dicts (when iterating directly on resource)
+        statuses = {row["marketing_status"] for row in data}
         assert "OTC" in statuses
         assert "DISCN" in statuses
 

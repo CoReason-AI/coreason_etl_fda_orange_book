@@ -14,7 +14,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
+# UPDATED: Use curl_cffi
+from curl_cffi import requests
 
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
@@ -35,10 +36,13 @@ class TestSourceErrors:
         # Mock 404 response
         mock_resp = MagicMock()
         mock_resp.status_code = 404
-        error = requests.HTTPError("404 Client Error: Not Found", response=mock_resp)
+        # We don't raise Exception here, the code checks status_code manually
+        # But we need to make sure response.url doesn't trigger abuse check
+        mock_resp.url = "http://clean.url"
 
-        with patch("requests.get", side_effect=error):
-            with pytest.raises(SourceSchemaError, match="Download link not found"):
+        with patch("curl_cffi.requests.get", return_value=mock_resp) as mock_get:
+             mock_get.return_value.__enter__.return_value = mock_resp
+             with pytest.raises(SourceSchemaError, match="Download link not found"):
                 source.download_archive(target)
 
     def test_download_500_raises_connection_error(self, source: FdaOrangeBookSource, tmp_path: Path) -> None:
@@ -48,16 +52,20 @@ class TestSourceErrors:
         # Mock 500 response
         mock_resp = MagicMock()
         mock_resp.status_code = 500
-        error = requests.HTTPError("500 Server Error", response=mock_resp)
+        mock_resp.url = "http://clean.url"
+        # raise_for_status raises RequestsError in curl_cffi?
+        # Let's mock raise_for_status to raise RequestsError
+        mock_resp.raise_for_status.side_effect = requests.RequestsError("500 Server Error")
 
-        with patch("requests.get", side_effect=error):
-            with pytest.raises(SourceConnectionError, match="HTTP error downloading"):
+        with patch("curl_cffi.requests.get", return_value=mock_resp) as mock_get:
+            mock_get.return_value.__enter__.return_value = mock_resp
+            with pytest.raises(SourceConnectionError, match="Failed to download"):
                 source.download_archive(target)
 
     def test_download_other_request_exception(self, source: FdaOrangeBookSource, tmp_path: Path) -> None:
         """Test generic request exception raises SourceConnectionError."""
         target = tmp_path / "test.zip"
 
-        with patch("requests.get", side_effect=requests.RequestException("Connection refused")):
+        with patch("curl_cffi.requests.get", side_effect=requests.RequestsError("Connection refused")):
             with pytest.raises(SourceConnectionError, match="Failed to download"):
                 source.download_archive(target)
