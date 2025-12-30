@@ -18,8 +18,8 @@ from typing import Any
 import dlt
 
 from coreason_etl_fda_orange_book.config import FdaConfig
-from coreason_etl_fda_orange_book.utils.logger import logger
 from coreason_etl_fda_orange_book.source import FdaOrangeBookSource
+from coreason_etl_fda_orange_book.utils.logger import logger
 
 
 def yield_bronze_records(

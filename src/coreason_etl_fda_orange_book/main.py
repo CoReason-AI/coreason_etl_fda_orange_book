@@ -11,7 +11,6 @@
 """Entry point for the FDA Orange Book ETL pipeline."""
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
