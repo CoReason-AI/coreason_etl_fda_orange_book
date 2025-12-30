@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 # UPDATED: Use curl_cffi
 from curl_cffi import requests
 
@@ -41,8 +42,8 @@ class TestSourceErrors:
         mock_resp.url = "http://clean.url"
 
         with patch("curl_cffi.requests.get", return_value=mock_resp) as mock_get:
-             mock_get.return_value.__enter__.return_value = mock_resp
-             with pytest.raises(SourceSchemaError, match="Download link not found"):
+            mock_get.return_value.__enter__.return_value = mock_resp
+            with pytest.raises(SourceSchemaError, match="Download link not found"):
                 source.download_archive(target)
 
     def test_download_500_raises_connection_error(self, source: FdaOrangeBookSource, tmp_path: Path) -> None:

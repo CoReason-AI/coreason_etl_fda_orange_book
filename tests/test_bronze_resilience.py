@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 # UPDATED: Use curl_cffi
 from curl_cffi import requests
 

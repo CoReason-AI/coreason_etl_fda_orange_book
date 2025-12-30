@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 # UPDATED: Use curl_cffi
 from curl_cffi import requests
 
@@ -56,7 +57,7 @@ class TestSourceNetworkResilience:
         mock_resp.status_code = 429
         # raise_for_status raises HTTPError
         # curl_cffi raises RequestsError or similar. Assuming standard behavior for raise_for_status
-        # Note: curl_cffi.requests.HTTPError might not exist or behave differently, but RequestsError covers it for our catch block
+        # Note: curl_cffi.requests.HTTPError might not exist or behave differently, but RequestsError covers it
         error = requests.RequestsError("429 Client Error: Too Many Requests", response=mock_resp)
 
         with patch("curl_cffi.requests.get", side_effect=error):
@@ -74,7 +75,7 @@ class TestSourceNetworkResilience:
         mock_resp.status_code = 200
         mock_resp.history = [MagicMock(status_code=302)]
         mock_resp.iter_content = lambda chunk_size: [b"redirected_content"]
-        mock_resp.url = "http://final.url" # Ensure no abuse keyword
+        mock_resp.url = "http://final.url"  # Ensure no abuse keyword
         mock_resp.__enter__.return_value = mock_resp
         mock_resp.__exit__.return_value = None
 
