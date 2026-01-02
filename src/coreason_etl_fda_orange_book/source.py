@@ -16,7 +16,8 @@ import zipfile
 from pathlib import Path
 from typing import Final
 
-import requests
+# UPDATED: Import curl_cffi instead of standard requests
+from curl_cffi import requests
 
 from coreason_etl_fda_orange_book.config import FdaConfig
 from coreason_etl_fda_orange_book.exceptions import SourceConnectionError, SourceSchemaError
@@ -48,21 +49,43 @@ class FdaOrangeBookSource:
         Raises:
             SourceConnectionError: If the download fails.
         """
-        self.logger.info(f"Downloading archive from {self.base_url} to {destination}")
+        self.logger.info(f"Downloading archive from {self.base_url} to {destination} via curl_cffi")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+
         try:
-            with requests.get(self.base_url, stream=True, timeout=60) as response:
-                response.raise_for_status()
-                with open(destination, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
-                        f.write(chunk)
+            # Impersonate Chrome 120 to pass TLS Fingerprint check
+            response = requests.get(
+                self.base_url,
+                impersonate="chrome120",
+                headers={
+                    "Referer": "https://www.fda.gov/drugs/drug-approvals-and-databases/orange-book-data-files",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+                stream=True,
+                timeout=300,
+            )
+
+            # Detect Abuse/Apology Redirects
+            if "abuse" in response.url or "apology" in response.url:
+                self.logger.error("FDA Firewall Blocked Request (Abuse Detection Triggered)")
+                raise SourceConnectionError("FDA Firewall Blocked Request: Abuse Detection Triggered")
+
+            if response.status_code == 404:
+                raise SourceSchemaError(f"Download link not found (404): {self.base_url}")
+
+            if response.status_code == 403:
+                raise SourceConnectionError(f"Access forbidden (403): {self.base_url}")
+
+            response.raise_for_status()
+
+            with open(destination, "wb") as f:
+                for chunk in response.iter_content(chunk_size=self.CHUNK_SIZE):
+                    f.write(chunk)
+
             self.logger.info("Download completed successfully.")
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                self.logger.error(f"Download link not found (404): {self.base_url}")
-                raise SourceSchemaError(f"Download link not found: {self.base_url}") from e
-            self.logger.error(f"HTTP error during download: {e}")
-            raise SourceConnectionError(f"HTTP error downloading from {self.base_url}: {e}") from e
-        except requests.RequestException as e:
+
+        except requests.RequestsError as e:
             self.logger.error(f"Failed to download archive: {e}")
             raise SourceConnectionError(f"Failed to download from {self.base_url}: {e}") from e
 
