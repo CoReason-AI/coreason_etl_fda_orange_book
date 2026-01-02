@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "coreason_etl_fda_orange_book"
+name = "coreason-etl-fda-orange-book"
 version = "0.1.0"
 description = "A robust ETL pipeline for ingesting and harmonizing FDA Orange Book data"
 authors = ["Gowtham A Rao <gowtham.rao@coreason.ai>"]
@@ -31,7 +31,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [project]
-name = "coreason_etl_fda_orange_book"
+name = "coreason-etl-fda-orange-book"
 version = "0.1.0"
 description = "A robust ETL pipeline for ingesting and harmonizing FDA Orange Book data"
 readme = "README.md"
