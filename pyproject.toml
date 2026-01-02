@@ -14,6 +14,7 @@ dlt = {extras = ["postgresql"], version = "^1.20.0"}
 polars = "^1.36.1"
 pydantic = "^2.12.5"
 requests = "^2.32.5"
+curl-cffi = "^0.14.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
