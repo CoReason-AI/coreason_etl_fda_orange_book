@@ -1,0 +1,5 @@
+site_name: coreason-etl-fda-orange-book
+theme:
+  name: material
+nav:
+  - Home: index.md

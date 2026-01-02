@@ -1,0 +1,43 @@
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: fda_postgres_test
+    environment:
+      POSTGRES_USER: pyetl_eve_admin
+      POSTGRES_PASSWORD: strongpassword
+      POSTGRES_DB: fda_evening_etl_test_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {POSTGRES_USER} -d {POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  etl_app:
+    build: .
+    container_name: fda_etl_runner
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    # CONSOLIDATED ENVIRONMENT
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /home/appuser/app
+      DESTINATION__POSTGRESQL__DESTINATION_TYPE: postgres
+      DESTINATION__POSTGRESQL__CREDENTIALS__HOST: postgres_db
+      DESTINATION__POSTGRESQL__CREDENTIALS__PASSWORD: strongpassword
+      DESTINATION__POSTGRESQL__CREDENTIALS__USERNAME: admin
+      DESTINATION__POSTGRESQL__CREDENTIALS__DATABASE: fda_etl_test_db
+      LOG_LEVEL: INFO
+    # UPDATED VOLUMES
+    volumes:
+      - ./data:/home/appuser/app/data
+      - ./src/coreason_etl_fda_orange_book:/home/appuser/app/coreason_etl_fda_orange_book
+
+    command: python -m coreason_etl_fda_orange_book.main
+
+volumes:
+  postgres_data:
