@@ -87,9 +87,9 @@ def test_yield_bronze_records_hash_failure(mock_source: MagicMock, tmp_path: Pat
     mock_source.calculate_file_hash.side_effect = Exception("Hash error")
 
     files_map = {"test": [f1]}
-    records = list(yield_bronze_records(files_map, mock_source))
 
-    assert len(records) == 0
+    with pytest.raises(Exception, match="Hash error"):
+        list(yield_bronze_records(files_map, mock_source))
 
 
 def test_yield_bronze_records_read_failure(mock_source: MagicMock, tmp_path: Path) -> None:
@@ -100,9 +100,8 @@ def test_yield_bronze_records_read_failure(mock_source: MagicMock, tmp_path: Pat
     files_map = {"test": [f1]}
 
     with patch("builtins.open", side_effect=OSError("Read error")):
-        records = list(yield_bronze_records(files_map, mock_source))
-
-    assert len(records) == 0
+        with pytest.raises(OSError, match="Read error"):
+            list(yield_bronze_records(files_map, mock_source))
 
 
 def test_yield_bronze_records_large_file(mock_source: MagicMock, tmp_path: Path) -> None:

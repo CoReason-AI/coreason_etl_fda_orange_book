@@ -25,6 +25,8 @@ from coreason_etl_fda_orange_book.silver.transform import (
 )
 
 
+import pytest
+
 def test_transform_memory_error(tmp_path: Path) -> None:
     """
     Test that transform_products gracefully handles a MemoryError during file reading.
@@ -36,11 +38,8 @@ def test_transform_memory_error(tmp_path: Path) -> None:
 
     # Mock polars.read_csv to raise MemoryError
     with patch("polars.read_csv", side_effect=MemoryError("Out of memory")):
-        df = transform_products(dummy_file)
-
-    # Should return an empty DataFrame and not crash
-    assert isinstance(df, pl.DataFrame)
-    assert df.is_empty()
+        with pytest.raises(MemoryError, match="Out of memory"):
+            transform_products(dummy_file)
 
 
 def test_transform_network_failure(tmp_path: Path) -> None:
@@ -53,11 +52,8 @@ def test_transform_network_failure(tmp_path: Path) -> None:
 
     # Mock polars.read_csv to raise OSError
     with patch("polars.read_csv", side_effect=OSError("Network unreachable")):
-        df = transform_patents(dummy_file)
-
-    # Should return an empty DataFrame and not crash
-    assert isinstance(df, pl.DataFrame)
-    assert df.is_empty()
+        with pytest.raises(OSError, match="Network unreachable"):
+            transform_patents(dummy_file)
 
 
 def test_large_ragged_file(tmp_path: Path) -> None:

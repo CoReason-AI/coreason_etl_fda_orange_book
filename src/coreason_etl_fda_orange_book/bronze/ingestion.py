@@ -47,7 +47,7 @@ def yield_bronze_records(
                 source_hash = source.calculate_file_hash(file_path)
             except Exception as e:
                 logger.error(f"Failed to calculate hash for {file_path}: {e}")
-                continue
+                raise
 
             try:
                 with open(file_path, "r", encoding=FdaConfig.ENCODING, errors=FdaConfig.ENCODING_ERRORS) as f:
@@ -68,7 +68,7 @@ def yield_bronze_records(
                         }
             except Exception as e:
                 logger.error(f"Failed to read file {file_path}: {e}")
-                continue
+                raise
 
 
 @dlt.resource(name="bronze_fda_orange_book", write_disposition="append")

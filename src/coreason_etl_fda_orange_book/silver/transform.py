@@ -72,7 +72,7 @@ def _clean_read_csv(file_path: Path) -> pl.DataFrame:
         return df.rename({col: col.strip() for col in df.columns})
     except Exception as e:
         logger.error(f"Failed to read CSV {file_path}: {e}")
-        return pl.DataFrame()
+        raise
 
 
 def transform_products(file_path: Path, marketing_status_hint: str = "RX") -> pl.DataFrame:

@@ -109,29 +109,5 @@ def test_ingestion_io_interruption(tmp_path: Path) -> None:
     mock_file.__exit__.return_value = None
 
     with patch("builtins.open", return_value=mock_file):
-        records = list(yield_bronze_records(files_map, mock_source))
-
-    # The current implementation catches Exception inside the loop over files.
-    # It should log the error and continue.
-    # Since the error happens during iteration of the file content, the generator catches it.
-
-    # Let's verify what happens.
-    # In `yield_bronze_records`:
-    # try:
-    #     with open(...) as f:
-    #         for line in f:
-    #             yield ...
-    # except Exception as e:
-    #     logger.error(...)
-
-    # If the generator `broken_lines()` raises inside the loop, the `except` block catches it.
-    # So the function stops yielding for this file and moves to the next file (if any).
-    # We should get the first record "line1".
-
-    # Wait, "line1" is yielded, then the next iteration calls next() on the generator which raises.
-    # The `yield` happens *before* the next iteration.
-    # So "line1" should be successfully yielded.
-    # Then the loop tries to get the next line -> Exception -> caught -> loop terminates for this file.
-
-    assert len(records) == 1
-    assert records[0]["raw_content"]["data"] == "line1"
+        with pytest.raises(OSError, match="Input/output error"):
+             list(yield_bronze_records(files_map, mock_source))

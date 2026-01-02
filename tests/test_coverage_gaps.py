@@ -52,8 +52,13 @@ class TestCoverageGaps:
         files_map = {"products": [p_path]}
 
         # Should return early
-        data = list(gold_products_resource(files_map))
-        assert data == []
+        # Now that we raise on empty/bad CSVs, this might raise if the empty file
+        # causes Polars to fail read.
+        # polars.read_csv on empty file raises NoDataError usually.
+        # So we expect an exception now.
+        import pytest
+        with pytest.raises(Exception):
+            list(gold_products_resource(files_map))
 
     def test_silver_ingestion_hints(self, tmp_path: Path) -> None:
         """Test different filename hints in ingestion."""
@@ -136,12 +141,16 @@ class TestCoverageGaps:
         assert len(data) > 0
 
     def test_silver_empty_dataframe_continue(self, tmp_path: Path) -> None:
-        """Test continue on empty DF in silver resources."""
+        """Test raise on empty DF in silver resources."""
         empty = tmp_path / "empty.txt"
         empty.write_text("", encoding="utf-8")
 
         files_map = {"products": [empty], "patent": [empty], "exclusivity": [empty]}
 
-        assert list(silver_products_resource(files_map)) == []
-        assert list(silver_patents_resource(files_map)) == []
-        assert list(silver_exclusivity_resource(files_map)) == []
+        import pytest
+        with pytest.raises(Exception):
+            list(silver_products_resource(files_map))
+        with pytest.raises(Exception):
+            list(silver_patents_resource(files_map))
+        with pytest.raises(Exception):
+            list(silver_exclusivity_resource(files_map))
