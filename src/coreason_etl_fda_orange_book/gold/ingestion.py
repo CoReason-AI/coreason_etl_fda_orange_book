@@ -25,7 +25,7 @@ from coreason_etl_fda_orange_book.silver.transform import (
 )
 
 
-@dlt.resource(name="gold_enriched_products", write_disposition="replace")
+@dlt.resource(name="FDA_ORANGE_BOOK_DIM_ENRICHED_PRODUCTS", write_disposition="replace")
 def gold_products_resource(
     files_map: dict[str, list[Path]],
 ) -> Iterator[dict[str, Any]]:

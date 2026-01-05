@@ -32,9 +32,10 @@ class TestTransformHelpers:
         # But wait, Polars read_csv might raise different errors.
         # Let's mock pl.read_csv to raise Exception to be sure we hit the except block
 
+        import pytest
         with patch("polars.read_csv", side_effect=Exception("Boom")):
-            df = _clean_read_csv(f_path)
-            assert df.is_empty()
+            with pytest.raises(Exception, match="Boom"):
+                _clean_read_csv(f_path)
 
     def test_parse_fda_date_value_error(self) -> None:
         """Test ValueError handling in date parser."""

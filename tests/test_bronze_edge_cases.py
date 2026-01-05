@@ -49,10 +49,8 @@ def test_yield_bronze_records_race_condition(mock_source: MagicMock, tmp_path: P
 
     # Since 'open' is a builtin, we patch it.
     with patch("builtins.open", side_effect=FileNotFoundError("File gone")):
-        records = list(yield_bronze_records(files_map, mock_source))
-
-    # Should yield nothing and not crash
-    assert len(records) == 0
+        with pytest.raises(FileNotFoundError, match="File gone"):
+            list(yield_bronze_records(files_map, mock_source))
 
 
 def test_yield_bronze_records_bom_handling(mock_source: MagicMock, tmp_path: Path) -> None:

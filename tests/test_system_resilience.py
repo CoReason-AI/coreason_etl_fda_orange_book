@@ -44,10 +44,8 @@ def test_read_permission_error(mock_source: MagicMock, tmp_path: Path) -> None:
     # Mock open to raise PermissionError
     # We patch builtins.open
     with patch("builtins.open", side_effect=PermissionError("Permission denied")):
-        records = list(yield_bronze_records(files_map, mock_source))
-
-    # Should handle error gracefully and yield nothing (log error instead of crash)
-    assert len(records) == 0
+        with pytest.raises(PermissionError, match="Permission denied"):
+            list(yield_bronze_records(files_map, mock_source))
 
 
 def test_write_permission_error(tmp_path: Path) -> None:
@@ -86,11 +84,8 @@ def test_file_locked(mock_source: MagicMock, tmp_path: Path) -> None:
     files_map = {"test": [f1]}
 
     with patch("builtins.open", side_effect=BlockingIOError("Resource temporarily unavailable")):
-        # Depending on implementation, might retry or skip.
-        # Current implementation of yield_bronze_records catches Exception.
-        records = list(yield_bronze_records(files_map, mock_source))
-
-    assert len(records) == 0
+        with pytest.raises(BlockingIOError, match="Resource temporarily unavailable"):
+             list(yield_bronze_records(files_map, mock_source))
 
 
 # 3. Resource Exhaustion Tests
@@ -136,11 +131,8 @@ def test_memory_exhaustion_transform(tmp_path: Path) -> None:
     # So it should NOT crash, but return empty DataFrame.
 
     with patch("polars.read_csv", side_effect=MemoryError("Out of memory")):
-        df = transform_products(f1)
-
-    # Verify it returned an empty DataFrame instead of crashing
-    assert isinstance(df, pl.DataFrame)
-    assert df.is_empty()
+        with pytest.raises(MemoryError, match="Out of memory"):
+            transform_products(f1)
 
 
 def test_corrupted_transformation_input(tmp_path: Path) -> None:

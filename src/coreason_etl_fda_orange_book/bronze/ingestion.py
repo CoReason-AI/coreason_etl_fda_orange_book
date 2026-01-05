@@ -71,7 +71,7 @@ def yield_bronze_records(
                 raise
 
 
-@dlt.resource(name="bronze_fda_orange_book", write_disposition="append")
+@dlt.resource(name="FDA_ORANGE_BOOK_RAW_FDA_ORANGE_BOOK", write_disposition="append")
 def bronze_resource(
     files_map: dict[str, list[Path]],
     source: FdaOrangeBookSource,

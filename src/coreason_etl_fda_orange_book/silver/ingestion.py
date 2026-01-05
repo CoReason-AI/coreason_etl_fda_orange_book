@@ -20,7 +20,7 @@ from coreason_etl_fda_orange_book.silver.models import SilverExclusivity, Silver
 from coreason_etl_fda_orange_book.silver.transform import transform_exclusivity, transform_patents, transform_products
 
 
-@dlt.resource(name="silver_products", write_disposition="replace", primary_key="coreason_id", columns=SilverProduct)
+@dlt.resource(name="FDA_ORANGE_BOOK_SILVER_PRODUCTS", write_disposition="replace", primary_key="coreason_id", columns=SilverProduct)
 def silver_products_resource(files_map: dict[str, list[Path]]) -> Iterator[SilverProduct]:
     """
     DLT resource for Silver products.
@@ -53,7 +53,7 @@ def silver_products_resource(files_map: dict[str, list[Path]]) -> Iterator[Silve
 
 
 @dlt.resource(
-    name="silver_patents",
+    name="FDA_ORANGE_BOOK_SILVER_PATENTS",
     write_disposition="replace",
     primary_key=["application_number", "product_number", "patent_number"],
     columns=SilverPatent,
@@ -83,7 +83,7 @@ def silver_patents_resource(files_map: dict[str, list[Path]]) -> Iterator[Silver
 
 
 @dlt.resource(
-    name="silver_exclusivity",
+    name="FDA_ORANGE_BOOK_SILVER_EXCLUSIVITY",
     write_disposition="replace",
     primary_key=["application_number", "product_number", "exclusivity_code"],
     columns=SilverExclusivity,
