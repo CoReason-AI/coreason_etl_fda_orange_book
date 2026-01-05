@@ -41,3 +41,7 @@ class TestTransformHelpers:
         """Test ValueError handling in date parser."""
         # "Invalid" date string that doesn't match format
         assert _parse_fda_date("Not a date") is None
+
+    def test_parse_fda_date_full_month(self) -> None:
+        """Test full month format handling."""
+        assert _parse_fda_date("January 1, 1982") == "1982-01-01"

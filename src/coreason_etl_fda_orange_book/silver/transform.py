@@ -36,7 +36,11 @@ def _generate_coreason_id(source_id: str) -> str:
 
 def _parse_fda_date(date_str: Optional[str]) -> Optional[str]:
     """
-    Parse FDA date format (e.g., 'Jan 1, 1982') to ISO 8601 (YYYY-MM-DD).
+    Parse FDA date format to ISO 8601 (YYYY-MM-DD).
+    Handles:
+    - 'Jan 1, 1982' (%b %d, %Y)
+    - 'January 1, 1982' (%B %d, %Y)
+    - 'Approved prior to Jan 1, 1982' (Returns None)
 
     Args:
         date_str: Date string from the source.
@@ -47,14 +51,26 @@ def _parse_fda_date(date_str: Optional[str]) -> Optional[str]:
     if not date_str or "Approved prior to" in date_str:
         return None
 
-    try:
-        # Polars str.to_date with format might be cleaner, but for row-wise UDF map_elements:
-        from datetime import datetime
+    cleaned_date = date_str.strip()
 
-        dt = datetime.strptime(date_str.strip(), "%b %d, %Y")
-        return dt.strftime("%Y-%m-%d")
-    except ValueError:
-        return None
+    # List of supported formats
+    formats = ["%b %d, %Y", "%B %d, %Y"]
+
+    from datetime import datetime
+
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(cleaned_date, fmt)
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    # If all formats fail, log warning and return None
+    # We log only if it looks like a date (not empty, which is handled above)
+    if cleaned_date:
+        logger.warning(f"Failed to parse date: '{cleaned_date}'")
+
+    return None
 
 
 def _clean_read_csv(file_path: Path) -> pl.DataFrame:

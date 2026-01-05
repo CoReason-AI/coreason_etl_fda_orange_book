@@ -154,3 +154,102 @@ class TestCoverageGaps:
             list(silver_patents_resource(files_map))
         with pytest.raises(Exception):
             list(silver_exclusivity_resource(files_map))
+
+    def test_transform_patents_missing_columns(self, tmp_path: Path) -> None:
+        """Test transform_patents with missing columns to trigger safe_col fallback."""
+        from coreason_etl_fda_orange_book.silver.transform import transform_patents
+
+        # CSV missing 'Patent_Use_Code'
+        p_path = tmp_path / "partial_patent.txt"
+        p_path.write_text(
+            "Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~Drug_Product_Flag~Delist_Flag\n"
+            "001~001~123~Jan 1, 2030~Y~N~N",
+            encoding="utf-8"
+        )
+
+        df = transform_patents(p_path)
+        # Should have null for patent_use_code
+        assert "patent_use_code" in df.columns
+        assert df["patent_use_code"].null_count() == df.height
+
+    def test_transform_patents_missing_appl_no(self, tmp_path: Path) -> None:
+        """Test transform_patents with missing Appl_No to trigger _safe_col_str fallback."""
+        from coreason_etl_fda_orange_book.silver.transform import transform_patents
+
+        # CSV missing 'Appl_No'
+        p_path = tmp_path / "missing_appl_no.txt"
+        p_path.write_text(
+            "Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~Drug_Product_Flag~Delist_Flag\n"
+            "001~123~Jan 1, 2030~Y~N~N",
+            encoding="utf-8"
+        )
+
+        df = transform_patents(p_path)
+        # Should return empty DF because we filter out null application_number
+        assert df.is_empty()
+
+    def test_gold_products_empty_list(self) -> None:
+        """Test gold ingestion with empty products list to hit early return."""
+        files_map = {"products": []}
+        data = list(gold_products_resource(files_map))
+        assert len(data) == 0
+
+    def test_transform_header_only(self, tmp_path: Path) -> None:
+        """Test transform functions with header-only files to hit is_empty check."""
+        from coreason_etl_fda_orange_book.silver.transform import (
+            transform_products,
+            transform_patents,
+            transform_exclusivity,
+        )
+
+        p_path = tmp_path / "header_products.txt"
+        p_path.write_text("Ingredient~Trade_Name~Applicant~Strength~Appl_No~Product_No~TE_Code~Approval_Date~RLD\n", encoding="utf-8")
+        assert transform_products(p_path).is_empty()
+
+        pat_path = tmp_path / "header_patents.txt"
+        pat_path.write_text("Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~Drug_Product_Flag~Patent_Use_Code~Delist_Flag\n", encoding="utf-8")
+        assert transform_patents(pat_path).is_empty()
+
+        exc_path = tmp_path / "header_exclusivity.txt"
+        exc_path.write_text("Appl_No~Product_No~Exclusivity_Code~Exclusivity_Date\n", encoding="utf-8")
+        assert transform_exclusivity(exc_path).is_empty()
+
+    def test_silver_ingestion_filtered_empty(self, tmp_path: Path) -> None:
+        """
+        Test that Silver resources hit 'continue' when DataFrame is not empty initially
+        but becomes empty after filter (valid CSV but missing key fields).
+        """
+        # Product file with missing Appl_No -> filtered out
+        p_path = tmp_path / "filtered_products.txt"
+        p_path.write_text(
+            "Ingredient~Trade_Name~Applicant~Strength~Appl_No~Product_No~TE_Code~Approval_Date~RLD\n"
+            "I~T~A~S~~001~~Jan 1, 2020~No", # Missing Appl_No
+            encoding="utf-8"
+        )
+
+        # Patent file with missing Appl_No -> filtered out
+        pat_path = tmp_path / "filtered_patents.txt"
+        pat_path.write_text(
+            "Appl_No~Product_No~Patent_No~Patent_Expire_Date_Text~Drug_Substance_Flag~Drug_Product_Flag~Patent_Use_Code~Delist_Flag\n"
+            "~001~123~Jan 1, 2030~Y~N~U~N", # Missing Appl_No
+            encoding="utf-8"
+        )
+
+        # Exclusivity file with missing Appl_No -> filtered out
+        exc_path = tmp_path / "filtered_exclusivity.txt"
+        exc_path.write_text(
+            "Appl_No~Product_No~Exclusivity_Code~Exclusivity_Date\n"
+            "~001~E~Jan 1, 2025", # Missing Appl_No
+            encoding="utf-8"
+        )
+
+        files_map = {
+            "products": [p_path],
+            "patent": [pat_path],
+            "exclusivity": [exc_path]
+        }
+
+        # All should yield 0 records but NOT raise exception, hitting the 'continue'
+        assert list(silver_products_resource(files_map)) == []
+        assert list(silver_patents_resource(files_map)) == []
+        assert list(silver_exclusivity_resource(files_map)) == []
